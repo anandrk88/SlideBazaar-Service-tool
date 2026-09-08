@@ -1,0 +1,323 @@
+// SlideBazaar Custom Design Services — data model
+// SQLite for local development. Switch provider to "postgresql" for production
+// (the schema uses only portable types; enums are modelled as strings so the
+// same schema works on both databases).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  phone        String?
+  company      String?
+  role         String   @default("CUSTOMER") // CUSTOMER | ADMIN | MANAGER | DESIGNER
+  billingAddress String?
+  billingCity    String?
+  billingCountry String?
+  billingVat     String?
+  marketingOptIn Boolean @default(false)
+  stripeCustomerId String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  orders          Order[]        @relation("CustomerOrders")
+  assignedOrders  Order[]        @relation("DesignerOrders")
+  uploadedFiles   OrderFile[]
+  events          OrderEvent[]
+  messages        OrderMessage[]
+  escrowEntries   EscrowEntry[]
+  notifications   Notification[]
+}
+
+/// In-app notification. An email with the same content is sent when SMTP is configured.
+model Notification {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String    // ORDER_PAID | ASSIGNED | QC_SUBMITTED | QC_RETURNED | DELIVERED | REVISION | APPROVED | REFUNDED | MESSAGE
+  title     String
+  body      String
+  href      String?
+  readAt    DateTime?
+  emailedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId, readAt])
+}
+
+model Order {
+  id            String   @id @default(cuid())
+  orderNumber   String   @unique
+  customerId    String
+  customer      User     @relation("CustomerOrders", fields: [customerId], references: [id])
+  designerId    String?
+  designer      User?    @relation("DesignerOrders", fields: [designerId], references: [id])
+
+  // Lifecycle — see src/lib/order-status.ts
+  status        String   @default("PENDING_PAYMENT")
+  escrowStatus  String   @default("NONE") // NONE | HELD | RELEASED | REFUNDED | PARTIALLY_RELEASED
+
+  // Step 1 — treatment
+  treatment       String  // LET_US_DECIDE | FIX_UP | REDESIGN | REDRAW
+  finalTreatment  String? // set by the team when treatment is LET_US_DECIDE
+  // Step 2 — style
+  style           String  // OWN_STYLE | CORPORATE | CREATIVE | PLAYFUL
+  // Step 3 — delivery
+  slideCount      Int
+  deliveryTier    String  // RUSH | EXPRESS | STANDARD
+  deadlineAt      DateTime
+  proofreading    String  @default("NONE") // NONE | PROOFREADING | EDITING
+  grammar         String  @default("US")   // UK | US
+  // Step 4 — brief
+  brief           String
+  googleSlidesUrl String?
+  audience        String?
+  brandNotes      String?
+  fontsColors     String?
+  extraNotes      String?
+
+  // Pricing snapshot (all amounts in integer cents, USD)
+  currency         String @default("usd")
+  perSlideMinCents Int
+  perSlideMaxCents Int
+  addonPerSlideCents Int  @default(0)
+  subtotalMinCents Int
+  subtotalMaxCents Int
+  totalCents       Int    // amount charged into escrow (upper bound for LET_US_DECIDE)
+  finalTotalCents  Int?   // amount actually earned; set at approval (defaults to totalCents)
+
+  revisionCount  Int      @default(0)
+  paidAt         DateTime?
+  startedAt      DateTime?
+  deliveredAt    DateTime?
+  approvedAt     DateTime?
+  completedAt    DateTime?
+  cancelledAt    DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  files          OrderFile[]
+  previews       SlidePreview[]
+  payments       Payment[]
+  escrowEntries  EscrowEntry[]
+  refundAttempts RefundAttempt[]
+  events         OrderEvent[]
+  messages       OrderMessage[]
+
+  @@index([customerId])
+  @@index([designerId])
+  @@index([status])
+}
+
+model OrderFile {
+  id           String   @id @default(cuid())
+  orderId      String
+  order        Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  uploadedById String?
+  uploadedBy   User?    @relation(fields: [uploadedById], references: [id])
+  kind         String   // SOURCE | STYLE_REFERENCE | DRAFT (awaiting QC, staff only) | DELIVERABLE (visible to customer)
+  originalName String
+  storedPath   String
+  mimeType     String
+  sizeBytes    Int
+  version      Int      @default(1)
+  label        String?
+  createdAt    DateTime @default(now())
+
+  @@index([orderId])
+}
+
+/// Watermarked PNG of one slide, made from the images the designer uploads
+/// with each draft. Customers see released previews before approval; the
+/// real design files unlock only after approval.
+model SlidePreview {
+  id           String   @id @default(cuid())
+  orderId      String
+  order        Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  version      Int      // draft number this preview belongs to
+  index        Int      // 1-based slide order
+  originalName String
+  storedPath   String
+  released     Boolean  @default(false) // true once QC approves the draft
+  createdAt    DateTime @default(now())
+
+  @@index([orderId, version])
+}
+
+model Payment {
+  id                String   @id @default(cuid())
+  orderId           String
+  order             Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  provider          String   // STRIPE | MOCK
+  providerSessionId String?  @unique
+  providerPaymentId String?  @unique
+  amountCents       Int
+  refundedCents     Int      @default(0)
+  currency          String   @default("usd")
+  status            String   @default("PENDING") // PENDING | SUCCEEDED | FAILED | REFUNDED | PARTIALLY_REFUNDED
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([orderId])
+}
+
+/// Append-only escrow ledger. HOLD credits the escrow, RELEASE moves funds to
+/// SlideBazaar revenue, REFUND returns funds to the customer.
+model EscrowEntry {
+  id          String   @id @default(cuid())
+  orderId     String
+  order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  type        String   // HOLD | RELEASE | REFUND
+  amountCents Int
+  note        String?
+  /// Stable key that makes a repeated write a no-op, e.g. "hold:<orderId>".
+  /// Guards against duplicate ledger rows when the webhook and the success
+  /// redirect race, or a staff action is double-submitted.
+  idempotencyKey String? @unique
+  createdById String?
+  createdBy   User?    @relation(fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
+
+  @@index([orderId])
+}
+
+/// A refund we owe the customer. The ledger records the decision; this row
+/// records whether the money actually left Stripe. Failed attempts are
+/// retryable by an admin and are never silently dropped.
+model RefundAttempt {
+  id          String   @id @default(cuid())
+  orderId     String
+  order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  paymentId   String?
+  amountCents Int
+  reason      String
+  status      String   @default("PENDING") // PENDING | SUCCEEDED | FAILED
+  attempts    Int      @default(0)
+  lastError   String?
+  providerRefundId String?
+  settledAt   DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([orderId])
+  @@index([status])
+}
+
+model OrderEvent {
+  id        String   @id @default(cuid())
+  orderId   String
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  actorId   String?
+  actor     User?    @relation(fields: [actorId], references: [id])
+  type      String
+  message   String
+  /// Internal events (QC feedback, staff notes) are hidden from the customer.
+  internal  Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([orderId])
+}
+
+/// ---------- Service catalogue (edited by admins under Settings) ----------
+/// Ids are stable codes (FIX_UP, CORPORATE, ...) referenced by orders, so
+/// options are disabled rather than deleted.
+
+model TreatmentOption {
+  id          String  @id
+  name        String
+  tagline     String
+  description String
+  minCents    Int
+  maxCents    Int
+  icon        String  @default("palette") // bulb | broom | palette | pencil
+  tint        String  @default("bg-violet-100 text-violet-700")
+  badge       String?
+  enabled     Boolean @default(true)
+  sortOrder   Int     @default(0)
+  updatedAt   DateTime @updatedAt
+}
+
+model StyleOption {
+  id             String  @id
+  name           String
+  description    String
+  swatch         String  @default("from-brand-800 to-brand-950")
+  accent         String  @default("bg-accent-500")
+  requiresUpload Boolean @default(false)
+  enabled        Boolean @default(true)
+  sortOrder      Int     @default(0)
+  updatedAt      DateTime @updatedAt
+}
+
+model DeliveryTierOption {
+  id         String  @id
+  name       String
+  days       Int
+  multiplier Float
+  note       String
+  enabled    Boolean @default(true)
+  sortOrder  Int     @default(0)
+  updatedAt  DateTime @updatedAt
+}
+
+model TextServiceOption {
+  id            String  @id
+  name          String
+  description   String
+  perSlideCents Int
+  icon          String  @default("search") // search | edit | none
+  enabled       Boolean @default(true)
+  sortOrder     Int     @default(0)
+  updatedAt     DateTime @updatedAt
+}
+
+/// Saved card in test mode (no Stripe key). With Stripe, cards live in Stripe
+/// and are read live; nothing sensitive is ever stored here.
+model SavedCard {
+  id        String   @id @default(cuid())
+  userId    String
+  brand     String
+  last4     String
+  expMonth  Int
+  expYear   Int
+  isDefault Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+/// Public holidays and other closed days. Delivery dates skip these.
+model Holiday {
+  id        String   @id @default(cuid())
+  date      String   @unique // YYYY-MM-DD
+  name      String
+  createdAt DateTime @default(now())
+}
+
+/// Key/value settings edited by admins (for example non-working weekdays).
+model Setting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+}
+
+model OrderMessage {
+  id        String   @id @default(cuid())
+  orderId   String
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  authorId  String
+  author    User     @relation(fields: [authorId], references: [id])
+  body      String
+  createdAt DateTime @default(now())
+
+  @@index([orderId])
+}

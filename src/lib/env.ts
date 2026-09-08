@@ -1,0 +1,89 @@
+import "server-only";
+
+/**
+ * Environment validation.
+ *
+ * The app has two dangerous fallbacks that are fine in development and must
+ * never happen in production:
+ *   - an empty STRIPE_SECRET_KEY serves the mock payment page, which marks
+ *     orders paid with no money;
+ *   - an empty SMTP_HOST writes customer emails to a local log file.
+ * checkEnv() refuses to start production if either would apply, or if the
+ * session secret or public URL are still development placeholders.
+ */
+
+export const isProduction = process.env.NODE_ENV === "production";
+
+/** Placeholders shipped in .env.example that must never reach production. */
+const PLACEHOLDER_SECRETS = [
+  "change-me-to-a-long-random-string-at-least-32-chars",
+  "sb-dev-secret-9f3c2a7e5b1d4c8a6f0e2b9d7c5a3f1e",
+];
+
+export function stripeConfigured() {
+  return Boolean(process.env.STRIPE_SECRET_KEY);
+}
+
+export function smtpConfigured() {
+  return Boolean(process.env.SMTP_HOST);
+}
+
+/**
+ * True only when it is safe to simulate payments. Production never qualifies,
+ * so a missing Stripe key becomes a hard failure instead of free orders.
+ */
+export function mockPaymentsAllowed() {
+  return !isProduction && !stripeConfigured();
+}
+
+export interface EnvProblem {
+  key: string;
+  message: string;
+}
+
+/** Collect configuration problems. Returns an empty array when all is well. */
+export function envProblems(): EnvProblem[] {
+  const problems: EnvProblem[] = [];
+  const secret = process.env.AUTH_SECRET ?? "";
+  const appUrl = process.env.APP_URL ?? "";
+
+  if (!secret) problems.push({ key: "AUTH_SECRET", message: "is not set" });
+  else if (secret.length < 32) problems.push({ key: "AUTH_SECRET", message: "must be at least 32 characters" });
+  else if (PLACEHOLDER_SECRETS.includes(secret)) {
+    problems.push({ key: "AUTH_SECRET", message: "is still the example value from .env.example; generate a fresh random secret" });
+  }
+
+  if (!process.env.DATABASE_URL) problems.push({ key: "DATABASE_URL", message: "is not set" });
+
+  if (!isProduction) return problems;
+
+  // Production-only requirements.
+  if (!appUrl) problems.push({ key: "APP_URL", message: "is not set; Stripe redirects and email links would point at localhost" });
+  else if (!/^https:\/\//.test(appUrl)) problems.push({ key: "APP_URL", message: "must be an https URL in production" });
+  else if (/localhost|127\.0\.0\.1/.test(appUrl)) problems.push({ key: "APP_URL", message: "must not point at localhost in production" });
+
+  if (!stripeConfigured()) {
+    problems.push({ key: "STRIPE_SECRET_KEY", message: "is not set; without it the app would serve the mock payment page and mark orders paid with no money" });
+  }
+  if (!process.env.STRIPE_WEBHOOK_SECRET) {
+    problems.push({ key: "STRIPE_WEBHOOK_SECRET", message: "is not set; every Stripe webhook would be rejected and payments would not be recorded" });
+  }
+  if (!smtpConfigured()) {
+    problems.push({ key: "SMTP_HOST", message: "is not set; customer emails would be written to a local log file instead of being sent" });
+  }
+  if (process.env.DATABASE_URL?.startsWith("file:")) {
+    problems.push({ key: "DATABASE_URL", message: "points at a SQLite file; use Postgres in production so data survives redeploys" });
+  }
+
+  return problems;
+}
+
+/** Throws with every problem listed at once. Called from instrumentation.ts at boot. */
+export function checkEnv() {
+  const problems = envProblems();
+  if (problems.length === 0) return;
+  const lines = problems.map((p) => `  - ${p.key} ${p.message}`).join("\n");
+  const message = `Invalid environment configuration:\n${lines}\n\nSee .env.example. Fix these before starting the app.`;
+  if (isProduction) throw new Error(message);
+  console.warn(`[env] ${message}`);
+}
