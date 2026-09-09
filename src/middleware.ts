@@ -1,7 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { jwtVerify } from "jose";
 
-const COOKIE = "sb_session";
+// Must match SESSION_COOKIE in src/lib/auth.ts.
+const COOKIE = "__Host-sb_session";
 
 async function readSession(req: NextRequest) {
   const token = req.cookies.get(COOKIE)?.value;
@@ -33,16 +34,14 @@ export async function middleware(req: NextRequest) {
     }
   }
 
-  if ((pathname === "/login" || pathname === "/signup") && session) {
-    const url = req.nextUrl.clone();
-    url.pathname = session.role === "CUSTOMER" ? "/dashboard" : "/admin";
-    url.search = "";
-    return NextResponse.redirect(url);
-  }
-
+  // Deliberately no "already logged in, bounce away from /login" rule here.
+  // This runs on the edge with no database, so it cannot compare sessionVersion
+  // and would treat a revoked cookie as a live session. Combined with a page
+  // that disagrees, that is an endless redirect between /login and /dashboard.
+  // The login and signup pages make that call themselves via getCurrentUser().
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/admin/:path*", "/login", "/signup"],
+  matcher: ["/dashboard/:path*", "/admin/:path*"],
 };

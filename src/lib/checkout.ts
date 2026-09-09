@@ -50,7 +50,7 @@ export async function createCheckoutUrl(order: Order, customer: CustomerLike) {
     metadata: { orderId: order.id, orderNumber: order.orderNumber },
     saved_payment_method_options: { payment_method_save: "enabled" },
     payment_intent_data: {
-      description: `SlideBazaar custom design ${order.orderNumber}`,
+      description: `Custom Presentation Service by SlideBazaar - ${order.orderNumber}`,
       metadata: { orderId: order.id, orderNumber: order.orderNumber },
       setup_future_usage: "off_session",
     },
@@ -61,8 +61,10 @@ export async function createCheckoutUrl(order: Order, customer: CustomerLike) {
           currency: order.currency,
           unit_amount: order.totalCents,
           product_data: {
-            name: `Custom slide design ${order.orderNumber} (${order.slideCount} slides)`,
-            description: "Held by SlideBazaar and released only when you approve the final designs. Refunded in full if you do not.",
+            name: "Custom Presentation Service by SlideBazaar",
+            // The order reference stays on the receipt so a customer can match
+            // a card statement to an order without asking us.
+            description: `Order ${order.orderNumber} · ${order.slideCount} slide${order.slideCount === 1 ? "" : "s"}`,
           },
         },
       },

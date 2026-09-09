@@ -5,7 +5,10 @@ import { ACCEPTED_UPLOAD_EXTENSIONS, MAX_UPLOAD_BYTES } from "./catalog";
 import { deleteObject, deletePrefix, getObjectBuffer, getObjectStream, putObject } from "./storage";
 
 /** Total bytes accepted in one submission, across all files. */
-export const MAX_UPLOAD_TOTAL_BYTES = 500 * 1024 * 1024;
+// Must stay below serverActions.bodySizeLimit and middlewareClientMaxBodySize
+// in next.config.ts. If it goes above them the framework rejects the request
+// first, with a message that does not mention size.
+export const MAX_UPLOAD_TOTAL_BYTES = 200 * 1024 * 1024;
 /** Files accepted in one submission. */
 export const MAX_UPLOAD_FILES = 60;
 

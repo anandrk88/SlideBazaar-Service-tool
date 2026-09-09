@@ -74,7 +74,7 @@ export const DEFAULT_TREATMENTS: Treatment[] = [
     name: "Let us decide",
     tagline: "Our design leads pick the treatment",
     description:
-      "Send the deck and we choose the treatment that gives the best result. You are only charged for what we actually apply; the difference is refunded from escrow.",
+      "Send the deck and we choose the treatment that gives the best result. We hold the upper estimate, and refund the difference when you approve.",
     minCents: 1100,
     maxCents: 4400,
     icon: "bulb",

@@ -11,6 +11,26 @@ import { PrismaClient } from "@prisma/client";
 import { markOrderPaid, approveAndRelease, refundOrder, escrowSummary, settlePendingRefunds } from "../src/lib/orders";
 
 const prisma = new PrismaClient();
+
+/**
+ * The header comment said "development only" and nothing enforced it. This
+ * script creates orders, payments and ledger rows; run against production it
+ * would put fake money in a real ledger. Refuse, exactly as prisma/seed.ts and
+ * prisma/reset.ts do.
+ */
+function assertNotProduction() {
+  const url = process.env.DATABASE_URL ?? "";
+  const looksProduction = process.env.NODE_ENV === "production" || (!url.startsWith("file:") && !/localhost|127\.0\.0\.1/.test(url));
+  if (looksProduction && process.env.ALLOW_TEST_ORDERS !== "yes") {
+    throw new Error(
+      "Refusing to run: this looks like a production database.\n" +
+        `DATABASE_URL=${url.replace(/:[^:@/]*@/, ":***@")}\n` +
+        "These checks create TEST- orders and escrow entries. Point DATABASE_URL at a development branch.\n" +
+        "Set ALLOW_TEST_ORDERS=yes only if you are certain.",
+    );
+  }
+}
+
 let failures = 0;
 function check(name: string, ok: boolean, detail = "") {
   console.log(`${ok ? "PASS" : "FAIL"}  ${name}${detail ? " :: " + detail : ""}`);
@@ -46,6 +66,7 @@ async function makeOrder(totalCents: number, treatment = "REDESIGN", finalTreatm
 }
 
 async function main() {
+  assertNotProduction();
   // 1. Concurrent markOrderPaid must produce exactly one HOLD.
   const o1 = await makeOrder(28000);
   const pay = () =>

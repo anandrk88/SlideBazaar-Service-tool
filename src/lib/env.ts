@@ -29,6 +29,20 @@ export function smtpConfigured() {
 }
 
 /**
+ * The app's own public origin, with no trailing slash. Lives here rather than
+ * in stripe.ts so the OAuth code can use it without importing the Stripe SDK.
+ */
+export function appUrl() {
+  const raw = process.env.APP_URL ?? "http://localhost:3000";
+  return raw.endsWith("/") ? raw.slice(0, -1) : raw;
+}
+
+/** Google sign-on is offered only when both halves of the client are present. */
+export function googleEnabled() {
+  return Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
+}
+
+/**
  * True only when it is safe to simulate payments. Production never qualifies,
  * so a missing Stripe key becomes a hard failure instead of free orders.
  */
@@ -55,6 +69,15 @@ export function envProblems(): EnvProblem[] {
 
   if (!process.env.DATABASE_URL) problems.push({ key: "DATABASE_URL", message: "is not set" });
 
+  const hasGoogleId = Boolean(process.env.GOOGLE_CLIENT_ID);
+  const hasGoogleSecret = Boolean(process.env.GOOGLE_CLIENT_SECRET);
+  if (hasGoogleId !== hasGoogleSecret) {
+    problems.push({
+      key: hasGoogleId ? "GOOGLE_CLIENT_SECRET" : "GOOGLE_CLIENT_ID",
+      message: "is missing while the other half is set; Google sign-on stays hidden until both are present",
+    });
+  }
+
   if (!isProduction) return problems;
 
   // Production-only requirements.
@@ -68,8 +91,24 @@ export function envProblems(): EnvProblem[] {
   if (!process.env.STRIPE_WEBHOOK_SECRET) {
     problems.push({ key: "STRIPE_WEBHOOK_SECRET", message: "is not set; every Stripe webhook would be rejected and payments would not be recorded" });
   }
+  // Presence is not enough. A sandbox key in production takes test cards and
+  // collects nothing, so the orders look paid and no money ever arrives.
+  if (process.env.STRIPE_SECRET_KEY?.startsWith("sk_test_")) {
+    problems.push({ key: "STRIPE_SECRET_KEY", message: "is a sandbox key (sk_test_); real cards would be declined and no money collected. Use the live key" });
+  }
+  if (process.env.STRIPE_WEBHOOK_SECRET && process.env.STRIPE_SECRET_KEY?.startsWith("sk_live_") && process.env.STRIPE_WEBHOOK_SECRET.length < 20) {
+    problems.push({ key: "STRIPE_WEBHOOK_SECRET", message: "looks too short to be a live signing secret" });
+  }
   if (!smtpConfigured()) {
     problems.push({ key: "SMTP_HOST", message: "is not set; customer emails would be written to a local log file instead of being sent" });
+  }
+  // Same class of silent fallback as the Stripe and SMTP checks above: without
+  // a bucket the app writes customer decks to the container filesystem, which
+  // most hosting wipes on the next deploy.
+  if (!process.env.S3_BUCKET) {
+    problems.push({ key: "S3_BUCKET", message: "is not set; customer files would be written to local disk and lost on the next deploy" });
+  } else if (!process.env.S3_ACCESS_KEY_ID || !process.env.S3_SECRET_ACCESS_KEY) {
+    problems.push({ key: "S3_ACCESS_KEY_ID", message: "and S3_SECRET_ACCESS_KEY must both be set when S3_BUCKET is; check with npm run storage:check" });
   }
   if (process.env.DATABASE_URL?.startsWith("file:")) {
     problems.push({ key: "DATABASE_URL", message: "points at a SQLite file; use Postgres in production so data survives redeploys" });

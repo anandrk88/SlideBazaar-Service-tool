@@ -64,6 +64,18 @@ async function sendEmail(to: { email: string; name: string }, p: NotifyPayload) 
   return false;
 }
 
+/**
+ * Email somebody without creating an in-app notification.
+ *
+ * Password resets and address verification go here: the recipient cannot
+ * necessarily log in, so an in-app notification would never be seen, and a
+ * reset link sitting in the notifications list would be a second place to
+ * steal it from.
+ */
+export async function sendTransactionalEmail(to: { email: string; name: string }, p: NotifyPayload) {
+  return sendEmail(to, p);
+}
+
 /** Create in-app notifications for the given users and email each of them. */
 export async function notifyUsers(userIds: (string | null | undefined)[], p: NotifyPayload) {
   const ids = Array.from(new Set(userIds.filter((x): x is string => Boolean(x))));

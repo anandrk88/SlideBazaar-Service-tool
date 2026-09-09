@@ -37,13 +37,35 @@ export function localRoot() {
 let s3: S3Client | null = null;
 function client() {
   if (!s3) {
+    const accessKeyId = process.env.S3_ACCESS_KEY_ID;
+    const secretAccessKey = process.env.S3_SECRET_ACCESS_KEY;
+    // Failing loudly beats the alternative. Spreading these in conditionally
+    // means one missing or misspelled variable drops the client through to the
+    // AWS default credential chain, and a missing endpoint points it at real
+    // AWS S3 - either way the failure surfaces as a confusing permissions
+    // error against the wrong service rather than "you forgot a variable".
+    if (!accessKeyId || !secretAccessKey) {
+      throw new Error(
+        "S3_BUCKET is set but S3_ACCESS_KEY_ID and S3_SECRET_ACCESS_KEY are not both present. " +
+          "Set them, or clear S3_BUCKET to use local disk. Check with: npm run storage:check",
+      );
+    }
     s3 = new S3Client({
+      // R2 has no regions, but the SDK still requires a value.
       region: process.env.S3_REGION || "auto",
-      // R2 and MinIO need an explicit endpoint; plain AWS does not.
+      // R2 and MinIO need an explicit endpoint; plain AWS S3 does not.
       ...(process.env.S3_ENDPOINT ? { endpoint: process.env.S3_ENDPOINT, forcePathStyle: true } : {}),
-      ...(process.env.S3_ACCESS_KEY_ID && process.env.S3_SECRET_ACCESS_KEY
-        ? { credentials: { accessKeyId: process.env.S3_ACCESS_KEY_ID, secretAccessKey: process.env.S3_SECRET_ACCESS_KEY } }
-        : {}),
+      credentials: { accessKeyId, secretAccessKey },
+      // Since v3.729.0 the SDK attaches a CRC32 checksum to every upload and
+      // validates one on every download. R2 has caught up for simple buffered
+      // puts, but the same defaults still break streamed uploads (they switch
+      // to aws-chunked, which R2 mishandles and then stores in the object's
+      // Content-Encoding), multipart completion, and presigned PUTs, where the
+      // signature covers a checksum header the browser never sends. Cloudflare
+      // documents turning both off. Buffered writes pass either way, so this is
+      // insurance against the paths we are one refactor away from using.
+      requestChecksumCalculation: "WHEN_REQUIRED",
+      responseChecksumValidation: "WHEN_REQUIRED",
     });
   }
   return s3;

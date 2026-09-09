@@ -28,6 +28,5 @@ export function stripe(): Stripe {
   return client;
 }
 
-export function appUrl() {
-  return (process.env.APP_URL ?? "http://localhost:3000").replace(/\/$/, "");
-}
+// Re-exported so existing importers (cards, checkout, notify, logout) are unchanged.
+export { appUrl } from "./env";

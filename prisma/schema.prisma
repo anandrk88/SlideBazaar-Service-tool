@@ -1,21 +1,32 @@
 // SlideBazaar Custom Design Services — data model
-// SQLite for local development. Switch provider to "postgresql" for production
-// (the schema uses only portable types; enums are modelled as strings so the
-// same schema works on both databases).
+// Postgres (Neon). Enums are modelled as strings and no database-specific types
+// are used, so the schema stays portable.
+//
+// There is one provider for every environment, so local development also needs
+// a Postgres URL. Use a Neon branch for that rather than pointing at the
+// production database: see docs/PRODUCTION.md.
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
 model User {
   id           String   @id @default(cuid())
   email        String   @unique
-  passwordHash String
+  // Null for an account that only signs in through a provider. Every password
+  // check must cope with that; see verifyPassword in src/lib/auth.ts.
+  passwordHash String?
+  // When somebody proved they control this mailbox. Null means nobody has, so
+  // the address alone is not evidence of anything.
+  emailVerified DateTime?
+  image        String?
+  // Bumped to invalidate every outstanding session token for this user.
+  sessionVersion Int    @default(0)
   name         String
   phone        String?
   company      String?
@@ -36,6 +47,48 @@ model User {
   messages        OrderMessage[]
   escrowEntries   EscrowEntry[]
   notifications   Notification[]
+  identities      AuthIdentity[]
+  verificationTokens VerificationToken[]
+}
+
+/// One external sign-in identity (Google today, aMember later).
+///
+/// The join key is (provider, providerAccountId), never the email address.
+/// Emails are mutable and providers reassign them, so matching on email is how
+/// account-takeover happens.
+model AuthIdentity {
+  id                      String    @id @default(cuid())
+  userId                  String
+  user                    User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider                String    // GOOGLE | AMEMBER
+  providerAccountId       String    // Google `sub`; aMember numeric id as a string
+  issuer                  String
+  emailAtLink             String    // what the provider asserted when linked, for audit
+  emailVerifiedByProvider Boolean   @default(false)
+  createdAt               DateTime  @default(now())
+  lastLoginAt             DateTime?
+
+  @@unique([provider, providerAccountId])
+  // One identity per provider per user, so a row cannot quietly accumulate
+  // several Google subjects.
+  @@unique([userId, provider])
+  @@index([userId])
+}
+
+/// Single-use tokens emailed to a user, for address verification and password
+/// resets. Only a hash is stored, so a database leak does not hand out valid
+/// links.
+model VerificationToken {
+  id        String    @id @default(cuid())
+  tokenHash String    @unique
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  purpose   String    // EMAIL_VERIFY | PASSWORD_RESET
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId, purpose])
 }
 
 /// In-app notification. An email with the same content is sent when SMTP is configured.

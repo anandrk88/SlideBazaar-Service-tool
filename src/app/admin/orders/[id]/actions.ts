@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { requireAdmin, requireQcReviewer, requireStaff } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { storeUpload } from "@/lib/files";
+import { removeStoredFile, storeUpload, validateUploadBatch } from "@/lib/files";
 import { createPreviewsFromImages, isPreviewImage } from "@/lib/previews";
 import { loadCatalog } from "@/lib/catalog-server";
 import { RANGE_TREATMENT_ID } from "@/lib/catalog";
@@ -63,11 +63,19 @@ export async function submitDraftAction(formData: FormData) {
   const images = formData.getAll("previews").filter((f): f is File => f instanceof File && f.size > 0 && isPreviewImage(f.name));
   if (files.length === 0) throw new Error("Attach the design file(s)");
   if (images.length === 0) throw new Error("Attach slide images (PNG or JPG, one per slide) for the customer preview");
+  // Checks the count and the combined size, not just each file, so an oversized
+  // submission is refused with a sentence about size.
+  validateUploadBatch([...files, ...images]);
 
   const order = await prisma.order.findUniqueOrThrow({ where: { id: orderId } });
   const version = order.revisionCount + 1;
-  // A resubmission after QC rejection replaces the previous unreleased draft files.
+  // A resubmission after QC rejection replaces the previous unreleased draft
+  // files. Deleting only the rows left the objects behind forever, so every
+  // rejected round quietly kept paying for storage nothing pointed at. Take the
+  // keys first, drop the rows, then remove the bytes.
+  const superseded = await prisma.orderFile.findMany({ where: { orderId, kind: "DRAFT" }, select: { storedPath: true } });
   await prisma.orderFile.deleteMany({ where: { orderId, kind: "DRAFT" } });
+  for (const old of superseded) await removeStoredFile(old.storedPath);
   for (const f of files) {
     const stored = await storeUpload(orderId, f);
     await prisma.orderFile.create({ data: { ...stored, orderId, uploadedById: user.id, kind: "DRAFT", version, label: `Draft ${version}` } });

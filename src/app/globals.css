@@ -20,6 +20,7 @@
   --color-accent-500: #ff6a3d;
   --color-accent-600: #e6532a;
   --color-accent-700: #c2401c;
+  --color-accent-800: #9a3315;
 
   --color-ink: #16244f;
   --color-muted: #6b7280;
@@ -52,10 +53,10 @@ body {
     @apply btn bg-accent-500 text-white shadow-md shadow-accent-500/30 hover:bg-accent-600 focus:outline-none focus:ring-2 focus:ring-accent-200;
   }
   .btn-outline {
-    @apply btn border border-slate-300 bg-white text-ink hover:border-ink;
+    @apply btn border border-slate-300 bg-white text-ink hover:border-ink focus:outline-none focus:ring-2 focus:ring-brand-300;
   }
   .btn-ghost {
-    @apply btn text-ink hover:bg-slate-100;
+    @apply btn text-ink hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-brand-300;
   }
   .btn-danger {
     @apply btn border border-rose-300 bg-white text-rose-700 hover:bg-rose-50;

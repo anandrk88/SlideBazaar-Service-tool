@@ -9,6 +9,13 @@ const nextConfig: NextConfig = {
       // any body-size limit on the reverse proxy in front of the app.
       bodySizeLimit: "250mb",
     },
+    // Any route covered by middleware has its request body buffered so the
+    // middleware could read it, and Next truncates that buffer at 10 MB by
+    // default. The designer's upload posts to /admin/orders/[id], which the
+    // middleware matcher covers, so without this the body was silently cut off
+    // at 10 MB and the action failed with "Unexpected end of form" — a message
+    // that says nothing about size. Keep this at or above bodySizeLimit.
+    middlewareClientMaxBodySize: "250mb",
   },
   // Security response headers. CSP is intentionally permissive about inline
   // styles because Tailwind and Next inject them; tighten if that changes.

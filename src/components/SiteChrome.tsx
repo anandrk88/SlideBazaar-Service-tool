@@ -2,7 +2,8 @@
 
 import { usePathname } from "next/navigation";
 
-const BARE_ROUTES = ["/login", "/signup"];
+/** Every page that renders inside AuthShell, which draws its own logo. */
+const BARE_ROUTES = ["/login", "/signup", "/forgot-password", "/reset-password", "/verify-email"];
 
 /** Hides the site header and footer on full-screen pages such as login and signup. */
 export function SiteChrome({ header, footer, children }: { header: React.ReactNode; footer: React.ReactNode; children: React.ReactNode }) {

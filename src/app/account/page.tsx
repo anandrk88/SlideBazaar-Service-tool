@@ -3,17 +3,30 @@ import { prisma } from "@/lib/db";
 import { listCards } from "@/lib/cards";
 import { mockPaymentsActive } from "@/lib/stripe";
 import { LockIcon } from "@/components/Icons";
-import { addCardAction, addTestCardAction, changePasswordAction, removeCardAction, saveBillingAction, saveProfileAction, setDefaultCardAction } from "./actions";
+import { googleEnabled } from "@/lib/env";
+import { dateTime } from "@/lib/format";
+import {
+  addCardAction,
+  addTestCardAction,
+  changePasswordAction,
+  removeCardAction,
+  resendVerificationAction,
+  saveBillingAction,
+  saveProfileAction,
+  setDefaultCardAction,
+  unlinkIdentityAction,
+} from "./actions";
 
 export const metadata = { title: "Account | SlideBazaar" };
 export const dynamic = "force-dynamic";
 
 const BRANDS: Record<string, string> = { visa: "Visa", mastercard: "Mastercard", amex: "American Express", discover: "Discover", diners: "Diners Club", jcb: "JCB", unionpay: "UnionPay" };
 
-export default async function AccountPage({ searchParams }: { searchParams: Promise<{ msg?: string; error?: string; card?: string }> }) {
+export default async function AccountPage({ searchParams }: { searchParams: Promise<{ msg?: string; error?: string; card?: string; linked?: string }> }) {
   const session = await requireUser("/account");
-  const { msg, error, card } = await searchParams;
-  const user = await prisma.user.findUniqueOrThrow({ where: { id: session.id } });
+  const { msg, error, card, linked } = await searchParams;
+  const user = await prisma.user.findUniqueOrThrow({ where: { id: session.id }, include: { identities: true } });
+  const hasPassword = Boolean(user.passwordHash);
   const cards = await listCards(user);
   const live = !mockPaymentsActive();
   const isCustomer = user.role === "CUSTOMER";
@@ -28,6 +41,7 @@ export default async function AccountPage({ searchParams }: { searchParams: Prom
 
       {msg && <p className="mt-4 rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{msg}</p>}
       {card === "added" && <p className="mt-4 rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-800">Card saved.</p>}
+      {linked === "google" && <p className="mt-4 rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-800">Google account connected.</p>}
       {card === "cancelled" && <p className="mt-4 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-800">Card setup was cancelled.</p>}
       {error && <p className="mt-4 rounded-xl bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</p>}
 
@@ -66,12 +80,19 @@ export default async function AccountPage({ searchParams }: { searchParams: Prom
 
         {/* Password */}
         <form action={changePasswordAction} className="card p-6">
-          <h2 className="font-semibold">Password</h2>
+          <h2 className="font-semibold">{hasPassword ? "Password" : "Set a password"}</h2>
+          {!hasPassword && (
+            <p className="mt-1 text-xs text-muted">
+              You sign in with a connected account. Adding a password gives you a second way in, and lets you disconnect that account later.
+            </p>
+          )}
           <div className="mt-4 grid gap-4">
-            <div>
-              <label className="label">Current password</label>
-              <input name="current" type="password" className="input" required autoComplete="current-password" />
-            </div>
+            {hasPassword && (
+              <div>
+                <label className="label">Current password</label>
+                <input name="current" type="password" className="input" required autoComplete="current-password" />
+              </div>
+            )}
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
                 <label className="label">New password</label>
@@ -83,8 +104,57 @@ export default async function AccountPage({ searchParams }: { searchParams: Prom
               </div>
             </div>
           </div>
-          <button className="btn-outline mt-5">Change password</button>
+          <button className="btn-outline mt-5">{hasPassword ? "Change password" : "Set password"}</button>
         </form>
+
+        {/* Connected sign-ins */}
+        <section className="card p-6">
+          <h2 className="font-semibold">Connected accounts</h2>
+          <p className="mt-1 text-xs text-muted">Other ways to sign in to this account. Your email address stays the same either way.</p>
+
+          <ul className="mt-4 space-y-2">
+            {user.identities.map((identity) => (
+              <li key={identity.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-surface px-4 py-3">
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold capitalize">{identity.provider.toLowerCase()}</p>
+                  <p className="text-xs text-muted">
+                    {identity.emailAtLink} · connected {dateTime(identity.createdAt)}
+                  </p>
+                </div>
+                <form action={unlinkIdentityAction}>
+                  <input type="hidden" name="identityId" value={identity.id} />
+                  <button className="btn-outline !px-3 !py-1.5 !text-xs">Disconnect</button>
+                </form>
+              </li>
+            ))}
+            {user.identities.length === 0 && <li className="text-sm text-muted">Nothing connected yet.</li>}
+          </ul>
+
+          {googleEnabled() && !user.identities.some((i) => i.provider === "GOOGLE") && (
+            <a href="/api/auth/google/start?link=1" className="btn-outline mt-4">
+              Connect a Google account
+            </a>
+          )}
+
+          {!hasPassword && user.identities.length <= 1 && (
+            <p className="mt-3 text-xs text-muted">
+              This is currently your only way to sign in, so it cannot be disconnected. Set a password above first.
+            </p>
+          )}
+        </section>
+
+        {/* Email confirmation */}
+        {!user.emailVerified && (
+          <section className="card p-6">
+            <h2 className="font-semibold">Confirm your email</h2>
+            <p className="mt-1 text-sm text-muted">
+              We have not confirmed that {user.email} reaches you. Confirming it lets you connect a Google account on the same address.
+            </p>
+            <form action={resendVerificationAction}>
+              <button className="btn-outline mt-4">Send me a confirmation link</button>
+            </form>
+          </section>
+        )}
 
         {isCustomer && (
           <>

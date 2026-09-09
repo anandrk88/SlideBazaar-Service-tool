@@ -12,10 +12,31 @@ interface Props {
   /** Inline mode hides the page title and the switch link renders as a button. */
   inline?: boolean;
   onSwitchMode?: (mode: "login" | "signup") => void;
+  /**
+   * Show the external sign-in buttons. Off by default because the order wizard
+   * embeds this form mid-flow, where a full-page redirect to Google would throw
+   * away the draft and the uploaded files.
+   */
+  showProviders?: boolean;
+  googleEnabled?: boolean;
+  /** Message to show above the form, e.g. after a failed Google callback. */
+  notice?: string | null;
 }
 
-export function AuthForm({ mode, onSuccess, next, inline, onSwitchMode }: Props) {
-  const [error, setError] = useState<string | null>(null);
+/** Accept a destination only if it stays on this origin. */
+function sameOriginPath(next: string | undefined): string | undefined {
+  if (!next) return undefined;
+  try {
+    const url = new URL(next, window.location.origin);
+    if (url.origin !== window.location.origin) return undefined;
+    return `${url.pathname}${url.search}${url.hash}`;
+  } catch {
+    return undefined;
+  }
+}
+
+export function AuthForm({ mode, onSuccess, next, inline, onSwitchMode, showProviders, googleEnabled, notice }: Props) {
+  const [error, setError] = useState<string | null>(notice ?? null);
   const [busy, setBusy] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
@@ -39,7 +60,7 @@ export function AuthForm({ mode, onSuccess, next, inline, onSwitchMode }: Props)
         return;
       }
       if (onSuccess) onSuccess(json.user);
-      else window.location.href = next || (json.user.role === "CUSTOMER" ? "/dashboard" : "/admin");
+      else window.location.href = sameOriginPath(next) ?? (json.user.role === "CUSTOMER" ? "/dashboard" : "/admin");
     } catch {
       setError("Network error. Please try again.");
     } finally {
@@ -81,6 +102,24 @@ export function AuthForm({ mode, onSuccess, next, inline, onSwitchMode }: Props)
       {!inline && <h1 className="text-2xl font-bold">{mode === "login" ? "Log in" : "Create your account"}</h1>}
       <p className="text-sm text-muted">{switchLink}</p>
 
+      {showProviders && googleEnabled && (
+        <>
+          {/* A plain link, not a fetch: OAuth is a top-level navigation. */}
+          <a
+            href={`/api/auth/google/start${next ? `?next=${encodeURIComponent(next)}` : ""}`}
+            className="btn-outline w-full !py-2.5"
+          >
+            <GoogleMark />
+            Continue with Google
+          </a>
+          <div className="flex items-center gap-3 text-xs uppercase tracking-wider text-muted">
+            <span className="h-px flex-1 bg-slate-200" />
+            or
+            <span className="h-px flex-1 bg-slate-200" />
+          </div>
+        </>
+      )}
+
       {mode === "signup" && (
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
@@ -106,9 +145,16 @@ export function AuthForm({ mode, onSuccess, next, inline, onSwitchMode }: Props)
           <input id="email" name="email" type="email" className="input" placeholder="Enter your email" required autoComplete="email" />
         </div>
         <div>
-          <label className="label" htmlFor="password">
-            Password *
-          </label>
+          <div className="flex items-baseline justify-between gap-3">
+            <label className="label" htmlFor="password">
+              Password *
+            </label>
+            {mode === "login" && (
+              <Link href="/forgot-password" className="text-xs font-medium text-brand-600 hover:underline">
+                Forgot your password?
+              </Link>
+            )}
+          </div>
           <div className="relative">
             <input
               id="password"
@@ -165,5 +211,17 @@ export function AuthForm({ mode, onSuccess, next, inline, onSwitchMode }: Props)
         {busy ? "Please wait..." : mode === "login" ? "Log in" : "Create account"}
       </button>
     </form>
+  );
+}
+
+/** Google's brand mark, inline so no external asset is fetched. */
+function GoogleMark() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true" className="shrink-0">
+      <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5Z" />
+      <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65Z" />
+      <path fill="#FBBC05" d="M10.53 28.59A14.4 14.4 0 0 1 9.77 24c0-1.6.27-3.15.76-4.59l-7.98-6.19A23.94 23.94 0 0 0 0 24c0 3.88.93 7.54 2.56 10.78l7.97-6.19Z" />
+      <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.9-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.17 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48Z" />
+    </svg>
   );
 }

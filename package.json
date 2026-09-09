@@ -11,13 +11,17 @@
     "db:push": "prisma db push",
     "db:generate": "prisma generate",
     "db:seed": "tsx prisma/seed.ts",
+    "db:reset": "tsx prisma/reset.ts",
     "db:studio": "prisma studio",
     "setup": "prisma generate && prisma db push && tsx prisma/seed.ts",
     "admin:create": "tsx prisma/create-admin.ts",
     "db:migrate": "prisma migrate deploy",
     "db:migrate:dev": "prisma migrate dev",
     "refunds:settle": "tsx --conditions=react-server scripts/settle-refunds.ts",
-    "verify:money": "tsx --conditions=react-server scripts/verify-money.ts"
+    "verify:money": "tsx --conditions=react-server scripts/verify-money.ts",
+    "verify:auth": "tsx scripts/verify-auth.ts",
+    "storage:check": "tsx --conditions=react-server scripts/check-storage.ts",
+    "bootstrap": "tsx --conditions=react-server scripts/bootstrap-production.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1127.0",

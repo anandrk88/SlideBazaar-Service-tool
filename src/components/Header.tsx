@@ -22,8 +22,8 @@ function navFor(user: SessionUser | null): NavItem[] {
   if (!user) {
     return [
       { href: "/#services", label: "Services" },
-      { href: "/#pricing", label: "Pricing" },
-      { href: "/#guarantee", label: "Our guarantee" },
+      { href: "/#how-it-works", label: "How it works" },
+      { href: "/#faq", label: "FAQ" },
     ];
   }
   if (!isStaff(user)) {
