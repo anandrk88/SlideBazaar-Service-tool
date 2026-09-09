@@ -28,6 +28,19 @@ orders it cannot fulfil. Check with `NODE_ENV=production npx tsx --conditions=re
 | `S3_BUCKET` and R2 keys | File storage |
 | `GOOGLE_CLIENT_ID` / `SECRET` | Optional; the button hides without them |
 
+### Deploying before you have live Stripe and SMTP
+
+Set `STAGING=yes` on that deployment. It downgrades the checks that only exist
+to protect real customers — live Stripe key, SMTP, object storage — to warnings,
+so the app boots and you can click through it. The checks that are wrong
+anywhere still fail: a short or placeholder `AUTH_SECRET`, a missing
+`DATABASE_URL`, a SQLite URL, and a non-https `APP_URL`.
+
+With `STAGING=yes` the app is not safe for real customers: orders can be paid
+with test cards, email goes to a log file, and files may not survive a redeploy.
+Remove it before the first real order. `checkEnv()` logs a warning on every boot
+while it is set.
+
 ### Two outstanding blockers
 
 **Stripe is on a sandbox key.** `sk_test_` collects nothing. Real cards are
