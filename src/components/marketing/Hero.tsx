@@ -1,6 +1,13 @@
 import Link from "next/link";
 import { CheckIcon } from "@/components/Icons";
 import { money } from "@/lib/format";
+import type { Content } from "@/lib/content";
+
+/** Uploaded under Admin > Homepage media. Video wins over image; both are optional. */
+export interface HeroMedia {
+  image?: string | null;
+  video?: string | null;
+}
 
 /**
  * Homepage hero: value proposition on the left, an angled collage of slide
@@ -12,12 +19,12 @@ import { money } from "@/lib/format";
  * client would be misleading. It is decorative, so it is hidden from
  * assistive technology.
  */
-export function Hero({ fromCents, fastestLabel }: { fromCents: number | null; fastestLabel: string | null }) {
+export function Hero({ fromCents, fastestLabel, t, media = {} }: { fromCents: number | null; fastestLabel: string | null; t: Content; media?: HeroMedia }) {
   const points = [
-    fromCents ? `Priced per slide, from ${money(fromCents)}` : "Priced per slide, no minimum order",
-    fastestLabel ? `First draft ${fastestLabel.toLowerCase()}` : "First draft in a few business days",
-    "Every draft checked by our quality team",
-    "Approve before we are paid, or get a full refund",
+    fromCents ? `Priced per slide, from ${money(fromCents)}` : t("hero.pointPriceFallback"),
+    fastestLabel ? `First draft ${fastestLabel.toLowerCase()}` : t("hero.pointSpeedFallback"),
+    t("hero.pointQuality"),
+    t("hero.pointGuarantee"),
   ];
 
   return (
@@ -28,18 +35,18 @@ export function Hero({ fromCents, fastestLabel }: { fromCents: number | null; fa
 
       {/* Collage occupies the right half of the viewport and bleeds off the edge.
           Positioned against the section, not the text, so it can never overlap the copy. */}
-      <SlideCollage />
+      <HeroVisual media={media} />
 
       <div className="relative mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:py-24">
         {/* Copy */}
         <div className="max-w-xl lg:max-w-[34rem]">
-          <p className="eyebrow !text-accent-400">Custom design services</p>
+          <p className="eyebrow !text-accent-400">{t("hero.eyebrow")}</p>
           <h1 className="mt-4 text-4xl font-bold leading-[1.1] sm:text-5xl">
-            Professional presentation design,
-            <span className="mt-1 block font-serif text-4xl italic text-accent-400 sm:text-5xl">without the agency wait.</span>
+            {t("hero.title")}
+            <span className="mt-1 block font-serif text-4xl italic text-accent-400 sm:text-5xl">{t("hero.titleAccent")}</span>
           </h1>
           <p className="mt-5 text-lg text-brand-100">
-            Send us the deck you have, or the notes you have not turned into one yet. Our designers rebuild it, our quality team checks it, and you only pay once you are happy.
+            {t("hero.intro")}
           </p>
 
           <ul className="mt-8 space-y-3">
@@ -55,17 +62,42 @@ export function Hero({ fromCents, fastestLabel }: { fromCents: number | null; fa
 
           <div className="mt-9 flex flex-wrap items-center gap-3">
             <Link href="/order" className="btn-accent !px-8 !py-3 !text-base">
-              Start your order
+              {t("hero.ctaPrimary")}
             </Link>
             <Link href="#how-it-works" className="btn !px-7 !py-3 !text-base border border-brand-500 text-white hover:bg-brand-800">
-              See how it works
+              {t("hero.ctaSecondary")}
             </Link>
           </div>
-          <p className="mt-4 text-sm text-brand-300">No account needed to get a price. You can see the full estimate before you pay.</p>
+          <p className="mt-4 text-sm text-brand-300">{t("hero.footnote")}</p>
         </div>
       </div>
     </section>
   );
+}
+
+/**
+ * Whatever fills the right half of the hero: an uploaded video, an uploaded
+ * picture, or the drawn collage when neither has been set. Decorative in every
+ * case, so it is hidden from assistive technology and from narrow screens.
+ */
+function HeroVisual({ media }: { media: HeroMedia }) {
+  if (media.video) {
+    return (
+      <div aria-hidden className="pointer-events-none absolute inset-y-0 right-0 hidden w-1/2 select-none lg:block">
+        {/* Muted, looping and inline: decoration, never something that demands attention. */}
+        <video src={media.video} autoPlay muted loop playsInline className="h-full w-full object-cover opacity-90" />
+      </div>
+    );
+  }
+  if (media.image) {
+    return (
+      <div aria-hidden className="pointer-events-none absolute inset-y-0 right-0 hidden w-1/2 select-none lg:block">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={media.image} alt="" className="h-full w-full object-cover opacity-90" />
+      </div>
+    );
+  }
+  return <SlideCollage />;
 }
 
 /** Decorative, angled grid of abstract slide mock-ups filling the right half. */

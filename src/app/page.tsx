@@ -1,6 +1,9 @@
 import Link from "next/link";
 import { activeCatalog } from "@/lib/catalog";
 import { loadCatalog } from "@/lib/catalog-server";
+import { loadContent } from "@/lib/content-server";
+import { loadMedia } from "@/lib/media-server";
+import { mediaUrl } from "@/lib/media";
 import { roundToDollar } from "@/lib/pricing";
 import { Hero } from "@/components/marketing/Hero";
 import { BeforeAfter } from "@/components/marketing/BeforeAfter";
@@ -11,7 +14,10 @@ import { Faq } from "@/components/marketing/Faq";
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  const cat = activeCatalog(await loadCatalog());
+  const [cat, t, media] = await Promise.all([loadCatalog().then(activeCatalog), loadContent(), loadMedia()]);
+  // A slot that has never been filled is simply absent, and each section falls
+  // back to the drawing it ships with.
+  const url = (slot: string) => (media[slot] ? mediaUrl(slot, media[slot].version) : null);
 
   // Cheapest per-slide price actually orderable today, and the quickest turnaround.
   const combos = cat.treatments.flatMap((t) => cat.tiers.map((tier) => roundToDollar(t.minCents * tier.multiplier)));
@@ -21,51 +27,50 @@ export default async function HomePage() {
 
   return (
     <div>
-      <Hero fromCents={fromCents} fastestLabel={fastestLabel} />
+      <Hero fromCents={fromCents} fastestLabel={fastestLabel} t={t} media={{ image: url("hero.image"), video: url("hero.video") }} />
 
-      <BeforeAfter />
+      <BeforeAfter t={t} media={{ before: url("beforeafter.before"), after: url("beforeafter.after") }} />
 
-      <HowItWorks />
+      <HowItWorks t={t} />
 
-      <Services />
+      <Services t={t} />
 
       {/* Guarantee */}
       <section id="guarantee" className="bg-white">
         <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6">
           <div className="grid gap-8 lg:grid-cols-2 lg:gap-12">
             <div>
-              <p className="eyebrow">Your money</p>
-              <h2 className="mt-2 text-2xl font-bold">Your money is protected</h2>
+              <p className="eyebrow">{t("guarantee.eyebrow")}</p>
+              <h2 className="mt-2 text-2xl font-bold">{t("guarantee.title")}</h2>
               <p className="mt-3 text-muted">
-                Your order total is charged upfront and held by SlideBazaar. No third party holds it, and we do not treat it as earned until you click Approve on your final designs. If you do not
-                approve, or we cannot deliver what you asked for, it is refunded in full to your original payment method. This is our own money-back guarantee.
+                {t("guarantee.body")}
               </p>
-              <p className="mt-3 text-muted">Chose &ldquo;Let us decide&rdquo;? We hold the upper estimate and refund the difference when you approve.</p>
+              <p className="mt-3 text-muted">{t("guarantee.bodyEstimate")}</p>
             </div>
             <div className="grid gap-3 text-sm sm:grid-cols-2">
               {[
-                ["Held", "Charged when you place the order, and held by us."],
-                ["Released", "Funds move to SlideBazaar when you approve."],
-                ["Refunded", "Funds return to you if the work is not accepted."],
-                ["Audited", "Every movement is recorded in our internal ledger."],
-              ].map(([k, v]) => (
-                <div key={k} className="rounded-2xl bg-surface p-4">
-                  <p className="font-semibold text-accent-700">{k}</p>
-                  <p className="mt-1 text-muted">{v}</p>
+                ["guarantee.card1.title", "guarantee.card1.body"],
+                ["guarantee.card2.title", "guarantee.card2.body"],
+                ["guarantee.card3.title", "guarantee.card3.body"],
+                ["guarantee.card4.title", "guarantee.card4.body"],
+              ].map(([titleKey, bodyKey]) => (
+                <div key={titleKey} className="rounded-2xl bg-surface p-4">
+                  <p className="font-semibold text-accent-700">{t(titleKey)}</p>
+                  <p className="mt-1 text-muted">{t(bodyKey)}</p>
                 </div>
               ))}
             </div>
           </div>
           <div className="mt-10 text-center">
             <Link href="/order" className="btn-accent !px-8 !py-3 !text-base">
-              Get an instant estimate
+              {t("guarantee.cta")}
             </Link>
-            <p className="mt-3 text-sm text-muted">The wizard prices your deck as you build it. Nothing is charged until you confirm.</p>
+            <p className="mt-3 text-sm text-muted">{t("guarantee.ctaNote")}</p>
           </div>
         </div>
       </section>
 
-      <Faq />
+      <Faq t={t} />
     </div>
   );
 }

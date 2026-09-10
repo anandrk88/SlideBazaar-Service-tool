@@ -31,6 +31,13 @@ export const PaletteIcon = (p: P) => (
     <circle cx="14" cy="7.5" r="1" />
   </svg>
 );
+export const ImageIcon = (p: P) => (
+  <svg {...base(p)}>
+    <rect x="3" y="5" width="18" height="14" rx="2" />
+    <circle cx="8.5" cy="10" r="1.5" />
+    <path d="m4 17 5-5 4 4 2-2 5 5" />
+  </svg>
+);
 export const PencilIcon = (p: P) => (
   <svg {...base(p)}>
     <path d="m4 20 4-1L20 7l-3-3L5 16l-1 4ZM14 6l3 3" />

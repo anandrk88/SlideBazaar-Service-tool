@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { ComponentType, ReactNode, SVGProps } from "react";
 import { ChevronDownIcon, LockIcon, ShieldCheckIcon, TasksIcon } from "@/components/Icons";
+import type { Content } from "@/lib/content";
 
 const SUPPORT_EMAIL = "support@slidebazaar.com";
 
@@ -17,150 +18,151 @@ type FaqGroup = {
   items: FaqItem[];
 };
 
-const GROUPS: FaqGroup[] = [
-  {
-    id: "faq-ordering",
-    title: "Ordering and delivery",
-    icon: TasksIcon,
-    items: [
-      {
-        id: "cost",
-        question: "How much does it cost?",
-        answer: (
-          <>
+function faqGroups(t: Content): FaqGroup[] {
+  return [
+    {
+      id: "faq-ordering",
+      title: t("faq.group1.title"),
+      icon: TasksIcon,
+      items: [
+        {
+          id: "cost",
+          question: t("faq.group1.q1.question"),
+          answer: (
+            <>
+              <p>
+                {t("faq.group1.q1.answer")}
+              </p>
+              <p className="mt-2">
+                <Link href="/order" className="font-semibold text-accent-700 underline underline-offset-2 hover:text-accent-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:ring-offset-2 rounded">
+                  {t("faq.group1.q1.answerLink")}
+                </Link>{" "}
+                {t("faq.group1.q1.answerAfterLink")}
+              </p>
+            </>
+          ),
+        },
+        {
+          id: "speed",
+          question: t("faq.group1.q2.question"),
+          answer: (
             <p>
-              Every order is priced per slide. The rate depends on the treatment you choose and how quickly you need the work back. You see the exact estimate in the order wizard before you pay
-              anything.
+              {t("faq.group1.q2.answer")}
             </p>
-            <p className="mt-2">
-              <Link href="/order" className="font-semibold text-accent-700 underline underline-offset-2 hover:text-accent-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:ring-offset-2 rounded">
-                Start an order
-              </Link>{" "}
-              to see the rate for your deck. Nothing is charged until you confirm.
+          ),
+        },
+        {
+          id: "files",
+          question: t("faq.group1.q3.question"),
+          answer: (
+            <p>{t("faq.group1.q3.answer")}</p>
+          ),
+        },
+        {
+          id: "treatment",
+          question: t("faq.group1.q4.question"),
+          answer: (
+            <p>
+              {t("faq.group1.q4.answer")}
             </p>
-          </>
-        ),
-      },
-      {
-        id: "speed",
-        question: "How quickly can I get my slides?",
-        answer: (
-          <p>
-            Pick the turnaround you need when you order. Large decks add time, and the wizard shows you the exact delivery date before you pay. Dates skip weekends and the public holidays we have
-            set.
-          </p>
-        ),
-      },
-      {
-        id: "files",
-        question: "What files can I send?",
-        answer: (
-          <p>PowerPoint, Keynote, PDF, Word and images. You can also send a Google Slides link. If all you have is a sketch or a page of notes, send that and we will work from it.</p>
-        ),
-      },
-      {
-        id: "treatment",
-        question: "What if I do not know which treatment I need?",
-        answer: (
-          <p>
-            Choose &ldquo;Let us decide&rdquo; and we pick the right treatment once we have seen your deck. We hold the upper estimate, and refund the difference when you approve.
-          </p>
-        ),
-      },
-      {
-        id: "revisions",
-        question: "Can I ask for changes?",
-        answer: (
-          <p>Yes. Request a revision from your order page and add notes on what you want changed. Your designer picks up the feedback and sends a new draft for you to review.</p>
-        ),
-      },
-    ],
-  },
-  {
-    id: "faq-payment",
-    title: "Payment and guarantee",
-    icon: LockIcon,
-    items: [
-      {
-        id: "charged",
-        question: "When am I charged?",
-        answer: <p>When you place the order. We hold your payment while the work is in progress, and it is released to us only when you approve the final slides.</p>,
-      },
-      {
-        id: "not-happy",
-        question: "What if I am not happy?",
-        answer: <p>If you do not approve, or we cannot deliver what you asked for, you get a full refund to your original payment method.</p>,
-      },
-      {
-        id: "holds-payment",
-        question: "Who holds my money until I approve?",
-        answer: (
-          <p>
-            SlideBazaar holds your payment. No third party is involved. It is released to us when you approve the slides, and refunded in full to your original payment method if you do not. This is
-            our own money-back guarantee.
-          </p>
-        ),
-      },
-      {
-        id: "card",
-        question: "Do you store my card?",
-        answer: <p>Card details are handled by Stripe. SlideBazaar never sees your card number. You can remove a saved card from your account page whenever you want.</p>,
-      },
-    ],
-  },
-  {
-    id: "faq-privacy",
-    title: "Your files and privacy",
-    icon: ShieldCheckIcon,
-    items: [
-      {
-        id: "who-sees",
-        question: "Who can see my deck?",
-        answer: (
-          <p>
-            The designer working on your order, the quality manager who checks the draft, and the small SlideBazaar team who run the service. We do not share your deck outside that.
-          </p>
-        ),
-      },
-      {
-        id: "watermark",
-        question: "Why are the previews watermarked?",
-        answer: <p>You review watermarked images first, so you can judge the design before the files are released. Approving unlocks the original PowerPoint and the original slide images.</p>,
-      },
-      {
-        id: "download",
-        question: "Can I download the original PowerPoint?",
-        answer: <p>Yes, once you have approved. You can take the slide images one at a time or download the whole set in one go, along with the PowerPoint file.</p>,
-      },
-      {
-        id: "nda",
-        question: "Do you sign an NDA?",
-        answer: (
-          <p>
-            Tell us what you need and we will talk it through before you order. Email{" "}
-            <a
-              href={`mailto:${SUPPORT_EMAIL}`}
-              className="font-semibold text-accent-700 underline underline-offset-2 hover:text-accent-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:ring-offset-2 rounded"
-            >
-              {SUPPORT_EMAIL}
-            </a>{" "}
-            with your confidentiality requirements.
-          </p>
-        ),
-      },
-    ],
-  },
-];
+          ),
+        },
+        {
+          id: "revisions",
+          question: t("faq.group1.q5.question"),
+          answer: (
+            <p>{t("faq.group1.q5.answer")}</p>
+          ),
+        },
+      ],
+    },
+    {
+      id: "faq-payment",
+      title: t("faq.group2.title"),
+      icon: LockIcon,
+      items: [
+        {
+          id: "charged",
+          question: t("faq.group2.q1.question"),
+          answer: <p>{t("faq.group2.q1.answer")}</p>,
+        },
+        {
+          id: "not-happy",
+          question: t("faq.group2.q2.question"),
+          answer: <p>{t("faq.group2.q2.answer")}</p>,
+        },
+        {
+          id: "holds-payment",
+          question: t("faq.group2.q3.question"),
+          answer: (
+            <p>
+              {t("faq.group2.q3.answer")}
+            </p>
+          ),
+        },
+        {
+          id: "card",
+          question: t("faq.group2.q4.question"),
+          answer: <p>{t("faq.group2.q4.answer")}</p>,
+        },
+      ],
+    },
+    {
+      id: "faq-privacy",
+      title: t("faq.group3.title"),
+      icon: ShieldCheckIcon,
+      items: [
+        {
+          id: "who-sees",
+          question: t("faq.group3.q1.question"),
+          answer: (
+            <p>
+              {t("faq.group3.q1.answer")}
+            </p>
+          ),
+        },
+        {
+          id: "watermark",
+          question: t("faq.group3.q2.question"),
+          answer: <p>{t("faq.group3.q2.answer")}</p>,
+        },
+        {
+          id: "download",
+          question: t("faq.group3.q3.question"),
+          answer: <p>{t("faq.group3.q3.answer")}</p>,
+        },
+        {
+          id: "nda",
+          question: t("faq.group3.q4.question"),
+          answer: (
+            <p>
+              {t("faq.group3.q4.answerBeforeEmail")}{" "}
+              <a
+                href={`mailto:${SUPPORT_EMAIL}`}
+                className="font-semibold text-accent-700 underline underline-offset-2 hover:text-accent-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:ring-offset-2 rounded"
+              >
+                {SUPPORT_EMAIL}
+              </a>{" "}
+              {t("faq.group3.q4.answerAfterEmail")}
+            </p>
+          ),
+        },
+      ],
+    },
+  ];
+}
 
-export function Faq() {
+export function Faq({ t }: { t: Content }) {
+  const groups = faqGroups(t);
+
   return (
     <section id="faq" className="mx-auto max-w-7xl px-4 py-16 sm:px-6">
-      <p className="eyebrow">Questions</p>
-      <h2 className="mt-2 text-2xl font-bold">Answers before you order</h2>
-      <p className="mt-2 max-w-2xl text-muted">The things people ask us most, about how orders run, how your money is handled and what happens to your files.</p>
+      <p className="eyebrow">{t("faq.eyebrow")}</p>
+      <h2 className="mt-2 text-2xl font-bold">{t("faq.heading")}</h2>
+      <p className="mt-2 max-w-2xl text-muted">{t("faq.intro")}</p>
 
       <div className="mt-10 grid gap-10 lg:grid-cols-3 lg:gap-8">
-        {GROUPS.map((group) => {
+        {groups.map((group) => {
           const GroupIcon = group.icon;
           return (
             <section key={group.id} aria-labelledby={group.id}>
@@ -190,14 +192,14 @@ export function Faq() {
       </div>
 
       <p className="mt-10 text-sm text-muted">
-        Still not answered? Email{" "}
+        {t("faq.contactBefore")}{" "}
         <a
           href={`mailto:${SUPPORT_EMAIL}`}
           className="font-semibold text-accent-700 underline underline-offset-2 hover:text-accent-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:ring-offset-2 rounded"
         >
           {SUPPORT_EMAIL}
         </a>{" "}
-        and a person will reply.
+        {t("faq.contactAfter")}
       </p>
     </section>
   );

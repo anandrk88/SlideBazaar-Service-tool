@@ -2,51 +2,52 @@ import Image from "next/image";
 import Link from "next/link";
 import type { ComponentType, SVGProps } from "react";
 import { CheckIcon, LockIcon, PencilIcon, ShieldCheckIcon, TasksIcon, UploadIcon } from "@/components/Icons";
+import type { Content } from "@/lib/content";
 
 type IconComponent = ComponentType<SVGProps<SVGSVGElement>>;
 
 type Step = {
   number: number;
-  title: string;
-  body: string;
-  note: string;
+  titleKey: string;
+  bodyKey: string;
+  noteKey: string;
   Icon: IconComponent;
 };
 
 const STEPS: Step[] = [
   {
     number: 1,
-    title: "Tell us what you need",
-    body: "Pick the treatment, the look and the deadline in the order wizard. The estimate updates as you choose, so you see the price before you commit.",
-    note: "Pick the turnaround you need. The wizard shows the exact delivery date, skipping weekends and public holidays.",
+    titleKey: "howitworks.step1.title",
+    bodyKey: "howitworks.step1.body",
+    noteKey: "howitworks.step1.note",
     Icon: TasksIcon,
   },
   {
     number: 2,
-    title: "Send your deck and brief",
-    body: "Upload your file or share a link, then tell us what the deck is for and what must not change. Logos, wording, numbers, anything you want left alone.",
-    note: "PowerPoint, Google Slides, Keynote, PDF, Word and images are all accepted.",
+    titleKey: "howitworks.step2.title",
+    bodyKey: "howitworks.step2.body",
+    noteKey: "howitworks.step2.note",
     Icon: UploadIcon,
   },
   {
     number: 3,
-    title: "Pay and we start",
-    body: "You pay the estimate upfront and SlideBazaar holds it. The payment is released only when you approve the finished slides, and refunded in full if you do not.",
-    note: "Design work begins as soon as the payment is confirmed.",
+    titleKey: "howitworks.step3.title",
+    bodyKey: "howitworks.step3.body",
+    noteKey: "howitworks.step3.note",
     Icon: LockIcon,
   },
   {
     number: 4,
-    title: "We design and quality check",
-    body: "A designer is assigned and works to the deadline you picked. Every draft then goes through an internal review by a quality manager before it reaches you.",
-    note: "Nothing is sent to you until it has passed that check.",
+    titleKey: "howitworks.step4.title",
+    bodyKey: "howitworks.step4.body",
+    noteKey: "howitworks.step4.note",
     Icon: PencilIcon,
   },
   {
     number: 5,
-    title: "Review and approve",
-    body: "You see watermarked previews of the slides. If something is not right, request changes from your order page and tell us what to fix.",
-    note: "Approving unlocks the original PowerPoint file and the full quality slide images for download.",
+    titleKey: "howitworks.step5.title",
+    bodyKey: "howitworks.step5.body",
+    noteKey: "howitworks.step5.note",
     Icon: ShieldCheckIcon,
   },
 ];
@@ -124,18 +125,18 @@ function PreviewThumb({ src, chart = false }: { src?: string | null; chart?: boo
   );
 }
 
-export function HowItWorks() {
+export function HowItWorks({ t }: { t: Content }) {
   return (
     <section id="how-it-works" className="bg-white">
       <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6">
-        <p className="eyebrow">How it works</p>
-        <h2 className="mt-2 text-2xl font-bold">Five steps from your deck to finished slides</h2>
-        <p className="mt-2 max-w-2xl text-muted">The whole order runs in one place. You see the price before you pay, the progress while we work, and the finished slides before any money is released.</p>
+        <p className="eyebrow">{t("howitworks.eyebrow")}</p>
+        <h2 className="mt-2 text-2xl font-bold">{t("howitworks.title")}</h2>
+        <p className="mt-2 max-w-2xl text-muted">{t("howitworks.intro")}</p>
 
         <div className="mt-10 grid gap-12 lg:grid-cols-[1.1fr_1fr] lg:items-start lg:gap-16">
           {/* The five steps */}
           <ol className="relative ml-4 space-y-8 border-l border-slate-200 pl-8">
-            {STEPS.map(({ number, title, body, note, Icon }) => (
+            {STEPS.map(({ number, titleKey, bodyKey, noteKey, Icon }) => (
               <li key={number} className="relative">
                 <span className="absolute -left-12 top-0 grid h-8 w-8 place-items-center rounded-full bg-accent-500 text-sm font-bold text-white ring-4 ring-white" aria-hidden="true">
                   {number}
@@ -144,11 +145,11 @@ export function HowItWorks() {
                   <Icon width={20} height={20} className="shrink-0 text-brand-500" aria-hidden="true" />
                   <span>
                     <span className="sr-only">Step {number}. </span>
-                    {title}
+                    {t(titleKey)}
                   </span>
                 </h3>
-                <p className="mt-1.5 text-sm text-muted">{body}</p>
-                <p className="mt-1.5 text-sm text-ink/70">{note}</p>
+                <p className="mt-1.5 text-sm text-muted">{t(bodyKey)}</p>
+                <p className="mt-1.5 text-sm text-ink/70">{t(noteKey)}</p>
               </li>
             ))}
           </ol>
@@ -198,16 +199,16 @@ export function HowItWorks() {
               </p>
             </div>
             <figcaption className="mt-3 text-xs text-muted">
-              An illustration of the order page. The status runs from Paid to Designing to Your review to Approved. Previews stay watermarked until you approve, and the original files unlock after that.
+              {t("howitworks.figureCaption")}
             </figcaption>
           </figure>
         </div>
 
         <div className="mt-12 flex flex-col items-start gap-4 sm:flex-row sm:flex-wrap sm:items-center">
           <Link href="/order" className="btn-accent shrink-0 !px-7 !py-3 !text-base">
-            Start your order
+            {t("howitworks.cta")}
           </Link>
-          <p className="text-sm text-muted sm:ml-2">No account is needed to get a price, and nothing is charged until you confirm.</p>
+          <p className="text-sm text-muted sm:ml-2">{t("howitworks.ctaNote")}</p>
         </div>
       </div>
     </section>
