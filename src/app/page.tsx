@@ -7,11 +7,13 @@ import { BeforeAfter } from "@/components/marketing/BeforeAfter";
 import { HowItWorks } from "@/components/marketing/HowItWorks";
 import { Services } from "@/components/marketing/Services";
 import { Faq } from "@/components/marketing/Faq";
+import { HtmlBlock } from "@/components/marketing/HtmlBlock";
+import { loadBlocks } from "@/lib/blocks-server";
 
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  const cat = activeCatalog(await loadCatalog());
+  const [cat, blocks] = await Promise.all([loadCatalog().then(activeCatalog), loadBlocks()]);
 
   // Cheapest per-slide price actually orderable today, and the quickest turnaround.
   const combos = cat.treatments.flatMap((t) => cat.tiers.map((tier) => roundToDollar(t.minCents * tier.multiplier)));
@@ -21,15 +23,50 @@ export default async function HomePage() {
 
   return (
     <div>
-      <Hero fromCents={fromCents} fastestLabel={fastestLabel} />
+      {blocks.hero ? (
+        <section className="bg-brand-900 text-white">
+          <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:py-24">
+            <HtmlBlock html={blocks.hero} invert />
+          </div>
+        </section>
+      ) : (
+        <Hero fromCents={fromCents} fastestLabel={fastestLabel} />
+      )}
 
-      <BeforeAfter />
+      {blocks.beforeafter ? (
+        <section id="before-after" className="mx-auto max-w-7xl px-4 py-16 sm:px-6">
+          <HtmlBlock html={blocks.beforeafter} />
+        </section>
+      ) : (
+        <BeforeAfter />
+      )}
 
-      <HowItWorks />
+      {blocks.howitworks ? (
+        <section id="how-it-works" className="bg-white">
+          <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6">
+            <HtmlBlock html={blocks.howitworks} />
+          </div>
+        </section>
+      ) : (
+        <HowItWorks />
+      )}
 
-      <Services />
+      {blocks.services ? (
+        <section id="services" className="mx-auto max-w-7xl px-4 py-16 sm:px-6">
+          <HtmlBlock html={blocks.services} />
+        </section>
+      ) : (
+        <Services />
+      )}
 
       {/* Guarantee */}
+      {blocks.guarantee ? (
+        <section id="guarantee" className="bg-white">
+          <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6">
+            <HtmlBlock html={blocks.guarantee} />
+          </div>
+        </section>
+      ) : (
       <section id="guarantee" className="bg-white">
         <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6">
           <div className="grid gap-8 lg:grid-cols-2 lg:gap-12">
@@ -65,7 +102,15 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <Faq />
+      )}
+
+      {blocks.faq ? (
+        <section id="faq" className="mx-auto max-w-7xl px-4 py-16 sm:px-6">
+          <HtmlBlock html={blocks.faq} />
+        </section>
+      ) : (
+        <Faq />
+      )}
     </div>
   );
 }

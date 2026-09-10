@@ -61,6 +61,79 @@ body {
   .btn-danger {
     @apply btn border border-rose-300 bg-white text-rose-700 hover:bg-rose-50;
   }
+  /* Hand-written homepage blocks (Admin > Homepage).
+     Tailwind only generates classes it finds in source files, so a utility
+     typed into the admin would never exist. These rules style plain semantic
+     tags instead, which is what lets the team write ordinary HTML. */
+  .rich > :first-child {
+    @apply mt-0;
+  }
+  .rich h2 {
+    @apply mt-2 text-2xl font-bold text-ink;
+  }
+  .rich h3 {
+    @apply mt-6 text-base font-bold text-ink;
+  }
+  .rich h4 {
+    @apply mt-5 text-sm font-bold text-ink;
+  }
+  .rich p {
+    @apply mt-3 max-w-3xl text-muted;
+  }
+  .rich ul {
+    @apply mt-3 max-w-3xl list-disc space-y-1 pl-5 text-muted;
+  }
+  .rich ol {
+    @apply mt-3 max-w-3xl list-decimal space-y-1 pl-5 text-muted;
+  }
+  .rich li strong {
+    @apply text-ink;
+  }
+  .rich a:not([class]) {
+    @apply font-medium text-accent-700 underline underline-offset-2 hover:text-accent-800;
+  }
+  .rich strong,
+  .rich b {
+    @apply font-semibold text-ink;
+  }
+  .rich blockquote {
+    @apply mt-4 max-w-3xl border-l-4 border-slate-200 pl-4 italic text-muted;
+  }
+  .rich img,
+  .rich video {
+    @apply mt-4 h-auto w-full max-w-3xl rounded-2xl;
+  }
+  .rich table {
+    @apply mt-4 w-full text-sm;
+  }
+  .rich th {
+    @apply border-b border-slate-200 py-2 pr-4 text-left font-medium text-muted;
+  }
+  .rich td {
+    @apply border-b border-slate-100 py-2 pr-4;
+  }
+  .rich hr {
+    @apply my-6 border-slate-200;
+  }
+  /* A hero block sits on the dark band, so its defaults have to invert. */
+  .rich-invert h1,
+  .rich-invert h2,
+  .rich-invert h3,
+  .rich-invert strong {
+    @apply text-white;
+  }
+  .rich-invert h1 {
+    @apply mt-4 text-4xl font-bold leading-[1.1] sm:text-5xl;
+  }
+  .rich-invert p,
+  .rich-invert ul,
+  .rich-invert ol {
+    @apply text-brand-100;
+  }
+  .rich-invert a:not([class]) {
+    @apply text-accent-400 hover:text-accent-200;
+  }
+
   .card {
     @apply rounded-2xl border border-slate-200 bg-white shadow-sm;
   }
