@@ -1,7 +1,6 @@
 import Image from "next/image";
 import type { ReactNode } from "react";
 import { LockIcon, ShieldCheckIcon } from "@/components/Icons";
-import type { Content } from "@/lib/content";
 
 /**
  * Real screenshots for the before and after slides.
@@ -11,15 +10,13 @@ import type { Content } from "@/lib/content";
  * instead, so the page renders correctly with none, one or both in place.
  * Landscape images work best; anything else is cropped to 16:9.
  *
- * The captions live in the editable homepage copy and default to descriptions
- * of the drawn mock-ups, so they need updating under Admin > Homepage text once
- * a real image takes their place.
+ * Edit the caption alongside the src. The captions below describe the drawn
+ * mock-ups, so they will be wrong once a real image takes their place.
  */
-/** URLs for the two example slides, uploaded under Admin > Homepage media. */
-export interface BeforeAfterMedia {
-  before?: string | null;
-  after?: string | null;
-}
+const PAIR: { before: { src: string | null; caption: string }; after: { src: string | null; caption: string } } = {
+  before: { src: null, caption: "A wall of body text with two placeholder boxes doing the work of a diagram." },
+  after: { src: null, caption: "One idea per slide, with a data graphic that carries the point." },
+};
 
 /* ------------------------------------------------------------------ */
 /* Slide mock-ups.                                                     */
@@ -97,35 +94,35 @@ function SlideFrame({ src, alt, children }: { src: string | null; alt: string; c
   return <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">{children}</div>;
 }
 
-export function BeforeAfter({ t, media = {} }: { t: Content; media?: BeforeAfterMedia }) {
+export function BeforeAfter() {
   // The "drawn for this page" disclaimer must not survive a real screenshot going in.
-  const allDrawn = !media.before && !media.after;
+  const allDrawn = !PAIR.before.src && !PAIR.after.src;
 
   return (
     <section id="before-after" className="mx-auto max-w-7xl px-4 py-16 sm:px-6">
-      <p className="eyebrow">{t("beforeafter.eyebrow")}</p>
-      <h2 className="mt-2 text-2xl font-bold">{t("beforeafter.title")}</h2>
+      <p className="eyebrow">Before and after</p>
+      <h2 className="mt-2 text-2xl font-bold">The same slide, rebuilt</h2>
       <p className="mt-2 max-w-2xl text-muted">
-        {allDrawn ? `${t("beforeafter.drawnDisclaimer")} ` : ""}{t("beforeafter.intro")}
+        {allDrawn ? "A generic mock-up drawn for this page, not customer work. " : ""}Your own deck keeps your words, your numbers and anything you tell us to leave alone.
       </p>
 
       <div className="mt-8 grid gap-5 sm:grid-cols-2">
         <figure className="card min-w-0 p-3">
-          <SlideFrame src={media.before ?? null} alt={t("beforeafter.before.imageAlt")}>
+          <SlideFrame src={PAIR.before.src} alt="A slide before our designers worked on it">
             <Before />
           </SlideFrame>
           <figcaption className="mt-3 flex flex-wrap items-baseline gap-x-2 gap-y-1 text-sm text-muted">
-            <span className="chip bg-slate-200 text-slate-700">{t("beforeafter.before.chip")}</span>
-            <span className="min-w-0">{t("beforeafter.before.caption")}</span>
+            <span className="chip bg-slate-200 text-slate-700">Before</span>
+            <span className="min-w-0">{PAIR.before.caption}</span>
           </figcaption>
         </figure>
         <figure className="card min-w-0 p-3">
-          <SlideFrame src={media.after ?? null} alt={t("beforeafter.after.imageAlt")}>
+          <SlideFrame src={PAIR.after.src} alt="The same slide after our designers rebuilt it">
             <After />
           </SlideFrame>
           <figcaption className="mt-3 flex flex-wrap items-baseline gap-x-2 gap-y-1 text-sm text-muted">
-            <span className="chip bg-accent-50 text-accent-700">{t("beforeafter.after.chip")}</span>
-            <span className="min-w-0">{t("beforeafter.after.caption")}</span>
+            <span className="chip bg-accent-50 text-accent-700">After</span>
+            <span className="min-w-0">{PAIR.after.caption}</span>
           </figcaption>
         </figure>
       </div>
@@ -134,11 +131,11 @@ export function BeforeAfter({ t, media = {} }: { t: Content; media?: BeforeAfter
       <div className="mt-10 grid gap-4 sm:grid-cols-2">
         <p className="flex items-start gap-3 text-sm text-muted">
           <ShieldCheckIcon width={22} height={22} className="mt-0.5 shrink-0 text-accent-500" aria-hidden="true" />
-          <span>{t("beforeafter.assurance.quality")}</span>
+          <span>A quality check happens inside SlideBazaar before any draft reaches you, and you can request changes from your order page.</span>
         </p>
         <p className="flex items-start gap-3 text-sm text-muted">
           <LockIcon width={22} height={22} className="mt-0.5 shrink-0 text-accent-500" aria-hidden="true" />
-          <span>{t("beforeafter.assurance.payment")}</span>
+          <span>Previews are watermarked until you approve. We hold your payment and release it only when you do, with a full refund if you do not.</span>
         </p>
       </div>
     </section>
