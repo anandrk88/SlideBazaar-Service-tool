@@ -68,66 +68,66 @@ body {
   .rich > :first-child {
     @apply mt-0;
   }
-  .rich h2 {
+  .rich h2:not([class]) {
     @apply mt-2 text-2xl font-bold text-ink;
   }
-  .rich h3 {
+  .rich h3:not([class]) {
     @apply mt-6 text-base font-bold text-ink;
   }
-  .rich h4 {
+  .rich h4:not([class]) {
     @apply mt-5 text-sm font-bold text-ink;
   }
-  .rich p {
+  .rich p:not([class]) {
     @apply mt-3 max-w-3xl text-muted;
   }
-  .rich ul {
+  .rich ul:not([class]) {
     @apply mt-3 max-w-3xl list-disc space-y-1 pl-5 text-muted;
   }
-  .rich ol {
+  .rich ol:not([class]) {
     @apply mt-3 max-w-3xl list-decimal space-y-1 pl-5 text-muted;
   }
-  .rich li strong {
+  .rich li strong:not([class]) {
     @apply text-ink;
   }
   .rich a:not([class]) {
     @apply font-medium text-accent-700 underline underline-offset-2 hover:text-accent-800;
   }
-  .rich strong,
-  .rich b {
+  .rich strong:not([class]),
+  .rich b:not([class]) {
     @apply font-semibold text-ink;
   }
-  .rich blockquote {
+  .rich blockquote:not([class]) {
     @apply mt-4 max-w-3xl border-l-4 border-slate-200 pl-4 italic text-muted;
   }
-  .rich img,
-  .rich video {
+  .rich img:not([class]),
+  .rich video:not([class]) {
     @apply mt-4 h-auto w-full max-w-3xl rounded-2xl;
   }
-  .rich table {
+  .rich table:not([class]) {
     @apply mt-4 w-full text-sm;
   }
-  .rich th {
+  .rich th:not([class]) {
     @apply border-b border-slate-200 py-2 pr-4 text-left font-medium text-muted;
   }
-  .rich td {
+  .rich td:not([class]) {
     @apply border-b border-slate-100 py-2 pr-4;
   }
-  .rich hr {
+  .rich hr:not([class]) {
     @apply my-6 border-slate-200;
   }
   /* A hero block sits on the dark band, so its defaults have to invert. */
-  .rich-invert h1,
-  .rich-invert h2,
-  .rich-invert h3,
-  .rich-invert strong {
+  .rich-invert h1:not([class]),
+  .rich-invert h2:not([class]),
+  .rich-invert h3:not([class]),
+  .rich-invert strong:not([class]) {
     @apply text-white;
   }
-  .rich-invert h1 {
+  .rich-invert h1:not([class]) {
     @apply mt-4 text-4xl font-bold leading-[1.1] sm:text-5xl;
   }
-  .rich-invert p,
-  .rich-invert ul,
-  .rich-invert ol {
+  .rich-invert p:not([class]),
+  .rich-invert ul:not([class]),
+  .rich-invert ol:not([class]) {
     @apply text-brand-100;
   }
   .rich-invert a:not([class]) {

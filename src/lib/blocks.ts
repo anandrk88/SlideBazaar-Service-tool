@@ -111,11 +111,17 @@ export const BLOCK_SETTING_PREFIX = "block.";
  * markup or a working script.
  */
 export const ALLOWED_TAGS = [
-  "h2", "h3", "h4", "p", "span", "div", "br", "hr",
-  "ul", "ol", "li", "strong", "b", "em", "i", "u", "s",
+  "h1", "h2", "h3", "h4", "h5", "h6", "p", "span", "div", "br", "hr", "section", "header", "footer", "nav", "main", "aside",
+  "ul", "ol", "li", "dl", "dt", "dd", "strong", "b", "em", "i", "u", "s", "code", "pre",
   "a", "blockquote", "figure", "figcaption", "img", "picture", "source",
-  "table", "thead", "tbody", "tr", "th", "td",
-  "video", "small", "sup", "sub",
+  "table", "thead", "tbody", "tfoot", "tr", "th", "td", "caption", "colgroup", "col",
+  "video", "small", "sup", "sub", "details", "summary", "time", "label",
+  // Presentational SVG only. Every section renders inline icons, so without
+  // these a section's own markup would be stripped the moment it was saved
+  // back. Deliberately absent: script, foreignObject, use, animate, set and
+  // anything else that can execute or pull in a remote document.
+  "svg", "g", "path", "circle", "ellipse", "rect", "line", "polyline", "polygon",
+  "defs", "linearGradient", "radialGradient", "stop", "text", "tspan", "clipPath", "mask",
 ];
 
 /**
@@ -126,12 +132,34 @@ export const ALLOWED_TAGS = [
  */
 export const ALLOWED_ATTRIBUTES: Record<string, string[]> = {
   a: ["href", "title", "target", "rel", "class"],
-  img: ["src", "alt", "width", "height", "loading", "class"],
-  video: ["src", "poster", "controls", "muted", "loop", "playsinline", "class"],
+  // No style attribute anywhere: it is enough to position an invisible
+  // element over the whole page and harvest clicks.
+  img: ["src", "alt", "width", "height", "loading", "decoding", "class"],
+  video: ["src", "poster", "controls", "muted", "loop", "playsinline", "autoplay", "class"],
   source: ["src", "srcset", "type", "media"],
   th: ["colspan", "rowspan", "scope"],
   td: ["colspan", "rowspan"],
-  "*": ["class", "id"],
+  details: ["open"],
+  // SVG carries its geometry in attributes, so they have to be listed. None of
+  // these can reference another document; href and xlink:href are absent on
+  // purpose.
+  svg: ["viewbox", "viewBox", "xmlns", "width", "height", "fill", "stroke", "class", "role", "focusable", "preserveaspectratio"],
+  path: ["d", "fill", "stroke", "stroke-width", "stroke-linecap", "stroke-linejoin", "stroke-dasharray", "stroke-dashoffset", "fill-rule", "clip-rule", "opacity", "transform", "class", "pathlength"],
+  circle: ["cx", "cy", "r", "fill", "stroke", "stroke-width", "stroke-dasharray", "stroke-dashoffset", "stroke-linecap", "opacity", "transform", "class", "pathlength"],
+  ellipse: ["cx", "cy", "rx", "ry", "fill", "stroke", "stroke-width", "opacity", "transform", "class"],
+  rect: ["x", "y", "width", "height", "rx", "ry", "fill", "stroke", "stroke-width", "stroke-dasharray", "opacity", "transform", "class"],
+  line: ["x1", "y1", "x2", "y2", "stroke", "stroke-width", "stroke-linecap", "opacity", "transform", "class"],
+  polyline: ["points", "fill", "stroke", "stroke-width", "stroke-linecap", "stroke-linejoin", "opacity", "transform", "class"],
+  polygon: ["points", "fill", "stroke", "stroke-width", "opacity", "transform", "class"],
+  g: ["fill", "stroke", "stroke-width", "stroke-linecap", "stroke-linejoin", "opacity", "transform", "class"],
+  text: ["x", "y", "dx", "dy", "fill", "font-size", "font-weight", "text-anchor", "dominant-baseline", "transform", "class"],
+  tspan: ["x", "y", "dx", "dy", "fill", "class"],
+  stop: ["offset", "stop-color", "stop-opacity"],
+  linearGradient: ["id", "x1", "y1", "x2", "y2", "gradientunits", "gradientUnits"],
+  radialGradient: ["id", "cx", "cy", "r", "gradientunits", "gradientUnits"],
+  clipPath: ["id"],
+  mask: ["id"],
+  "*": ["class", "id", "aria-hidden", "aria-label", "aria-labelledby", "aria-describedby", "role", "title", "hidden", "lang", "dir"],
 };
 
 /** Only these can appear in href/src. No javascript:, no data: payloads. */

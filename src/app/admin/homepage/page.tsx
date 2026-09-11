@@ -2,16 +2,20 @@ import Link from "next/link";
 import { requireAdmin } from "@/lib/auth";
 import { ALLOWED_TAGS, BLOCKS } from "@/lib/blocks";
 import { loadBlocks } from "@/lib/blocks-server";
+import { loadBlockSources } from "@/lib/blocks-source";
 import { HtmlBlock } from "@/components/marketing/HtmlBlock";
 import { clearBlockAction, saveBlockAction } from "./actions";
 
 export const metadata = { title: "Homepage | SlideBazaar Admin" };
 export const dynamic = "force-dynamic";
 
-export default async function HomepageBlocksPage({ searchParams }: { searchParams: Promise<{ msg?: string; error?: string; open?: string }> }) {
+export default async function HomepageBlocksPage({ searchParams }: { searchParams: Promise<{ msg?: string; error?: string }> }) {
   await requireAdmin();
-  const { msg, error, open } = await searchParams;
+  const { msg, error } = await searchParams;
   const blocks = await loadBlocks();
+
+  // What each section actually renders today, read from the live homepage.
+  const sources = await loadBlockSources();
 
   return (
     <div className="space-y-8">
@@ -77,35 +81,32 @@ export default async function HomepageBlocksPage({ searchParams }: { searchParam
                 <textarea
                   id={`html-${block.id}`}
                   name="html"
-                  defaultValue={current ?? (open === block.id ? block.starter : "")}
-                  rows={14}
+                  defaultValue={current ?? sources[block.id] ?? block.starter}
                   spellCheck={false}
+                  rows={22}
                   placeholder={block.starter}
                   className="input font-mono text-xs leading-relaxed"
                 />
                 <div className="mt-2 flex flex-wrap items-center gap-3">
                   <button className="btn-primary !px-4 !py-2 !text-sm">Save this section</button>
-                  {!isCustom && (
-                    <Link href={`/admin/homepage?open=${block.id}#html-${block.id}`} className="text-xs font-medium text-accent-700 hover:underline">
-                      Fill the box with an example to edit
-                    </Link>
-                  )}
-                  <span className="text-xs text-muted">Empty the box and save to go back to the designed version.</span>
+                  <span className="text-xs text-muted">
+                    {isCustom
+                      ? "Empty the box and save to go back to the designed version."
+                      : "This is the section's current markup. Change it and save, and the page changes."}
+                  </span>
                 </div>
               </div>
 
               <div>
                 <p className="label">Preview</p>
-                <div className={`min-h-[14rem] rounded-xl border border-slate-200 p-4 ${block.id === "hero" ? "bg-brand-900" : "bg-surface"}`}>
+                <div className="max-h-[34rem] overflow-auto rounded-xl border border-slate-200 bg-white">
                   {current ? (
                     <HtmlBlock html={current} invert={block.id === "hero"} />
                   ) : (
-                    <p className={`text-sm ${block.id === "hero" ? "text-brand-200" : "text-muted"}`}>
-                      Nothing written yet, so the designed version is on the site. Save some HTML and it will show here.
-                    </p>
+                    <p className="p-4 text-sm text-muted">The designed version is on the site. Save a change and the result shows here.</p>
                   )}
                 </div>
-                <p className="mt-2 text-xs text-muted">Shows what was saved, after cleaning. Check the real page for the full width and background.</p>
+                <p className="mt-2 text-xs text-muted">Shows what was saved, after cleaning. Narrower than the real page, so check the site itself for layout.</p>
               </div>
             </form>
           </section>

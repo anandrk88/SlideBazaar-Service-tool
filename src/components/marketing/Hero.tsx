@@ -21,7 +21,7 @@ export function Hero({ fromCents, fastestLabel }: { fromCents: number | null; fa
   ];
 
   return (
-    <section className="relative overflow-hidden bg-brand-900 text-white">
+    <section id="hero" className="relative overflow-hidden bg-brand-900 text-white">
       {/* Ambient glow */}
       <div className="pointer-events-none absolute -left-40 -top-40 h-[30rem] w-[30rem] rounded-full bg-brand-500/30 blur-3xl" />
       <div className="pointer-events-none absolute -bottom-56 left-1/3 h-[28rem] w-[28rem] rounded-full bg-accent-500/20 blur-3xl" />
