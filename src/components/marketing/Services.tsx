@@ -56,7 +56,7 @@ const SERVICES: ServiceCard[] = [
   {
     id: "large-decks",
     title: "Large decks and rebrands",
-    description: "Hundreds of slides, or several decks at once. Tell us the scope and our team will plan the work and agree a schedule with you first.",
+    description: "Hundreds of slides, or several decks at once. Tell us the scope and our team will plan the work and agree on a schedule with you first.",
     href: BIG_JOB_MAILTO,
     cta: "Email the team",
     tint: "bg-emerald-100 text-emerald-700",
@@ -65,7 +65,7 @@ const SERVICES: ServiceCard[] = [
   {
     id: "something-else",
     title: "Something else",
-    description: "Infographics, icon sets, chart makeovers and master templates for your team. Describe what you need and we will quote it.",
+    description: "Infographics, icon sets, chart makeovers and master templates for your team. Describe what you need and we’ll give you a quote.",
     href: OTHER_WORK_MAILTO,
     cta: "Email the team",
     tint: "bg-slate-200 text-slate-700",
@@ -83,7 +83,7 @@ export function Services() {
       <p className="eyebrow">What we do</p>
       <h2 className="mt-2 text-2xl font-bold">Six ways we can help with a deck</h2>
       <p className="mt-2 max-w-2xl text-muted">
-        Every job is designed by a person and checked by our quality manager before you see it. You review watermarked previews, and the files unlock once you approve.
+        Every slide is designed by a person and checked by our quality manager before you see it. You review watermarked previews, and get the final files once you approve.
       </p>
 
       <ul className="mt-8 grid list-none gap-5 p-0 sm:grid-cols-2 lg:grid-cols-3">

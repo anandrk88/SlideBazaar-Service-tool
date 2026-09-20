@@ -15,9 +15,9 @@ import { money } from "@/lib/format";
 export function Hero({ fromCents, fastestLabel }: { fromCents: number | null; fastestLabel: string | null }) {
   const points = [
     fromCents ? `Priced per slide, from ${money(fromCents)}` : "Priced per slide, no minimum order",
-    fastestLabel ? `First draft ${fastestLabel.toLowerCase()}` : "First draft in a few business days",
+    fastestLabel ? `First draft by the ${fastestLabel.toLowerCase()}` : "First draft in a few business days",
     "Every draft checked by our quality team",
-    "Approve before we are paid, or get a full refund",
+    "Funds held until approval, or fully refunded",
   ];
 
   return (
@@ -28,7 +28,7 @@ export function Hero({ fromCents, fastestLabel }: { fromCents: number | null; fa
 
       {/* Collage occupies the right half of the viewport and bleeds off the edge.
           Positioned against the section, not the text, so it can never overlap the copy. */}
-      <SlideCollage />
+      <HeroVisual />
 
       <div className="relative mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:py-24">
         {/* Copy */}
@@ -39,7 +39,7 @@ export function Hero({ fromCents, fastestLabel }: { fromCents: number | null; fa
             <span className="mt-1 block font-serif text-4xl italic text-accent-400 sm:text-5xl">without the agency wait.</span>
           </h1>
           <p className="mt-5 text-lg text-brand-100">
-            Send us the deck you have, or the notes you have not turned into one yet. Our designers rebuild it, our quality team checks it, and you only pay once you are happy.
+            Send us your existing deck or rough notes. Our designers rebuild every slide, our quality team checks the work, and your payment stays safely on hold until you approve the final design.
           </p>
 
           <ul className="mt-8 space-y-3">
@@ -61,10 +61,64 @@ export function Hero({ fromCents, fastestLabel }: { fromCents: number | null; fa
               See how it works
             </Link>
           </div>
-          <p className="mt-4 text-sm text-brand-300">No account needed to get a price. You can see the full estimate before you pay.</p>
+          <p className="mt-4 text-sm text-brand-300">No account needed to get started. See the full estimate before you pay.</p>
         </div>
       </div>
     </section>
+  );
+}
+
+/**
+ * The film that fills the right half of the hero.
+ *
+ * Decoration, so it is hidden from assistive technology, never shown on narrow
+ * screens, and silent. Two sources because Safari's WebM support is patchy:
+ * the browser picks the first it can play. The poster shows immediately so the
+ * space is never blank while the file downloads.
+ *
+ * Anyone who has asked their system for reduced motion gets the drawn collage
+ * instead: an autoplaying loop is exactly what that setting exists to stop.
+ */
+function HeroVisual() {
+  return (
+    <>
+      {/* Full bleed rather than a panel on the right: a boxed video reads as a
+          second half of the page, with a hard seam down the middle. */}
+      <div aria-hidden className="pointer-events-none absolute inset-0 hidden select-none motion-reduce:hidden lg:block">
+        <video
+          // Full width with the height left to follow, rather than object-cover:
+          // the slides sit in the right of the frame, so cropping the sides is
+          // exactly what must not happen. Any vertical overflow is clipped by
+          // the section.
+          //
+          // The film is light slides on black. Screen blending drops the black
+          // into the navy, so the slides appear to float on the background
+          // instead of sitting in a box.
+          className="absolute left-0 top-1/2 w-full -translate-y-1/2 opacity-95 mix-blend-screen"
+          poster="/marketing/hero-poster.jpg"
+          autoPlay
+          muted
+          loop
+          playsInline
+          preload="metadata"
+        >
+          <source src="/marketing/hero.webm" type="video/webm" />
+          <source src="/marketing/hero.mp4" type="video/mp4" />
+        </video>
+
+        {/* Light scrim over the copy only, so the headline keeps its contrast
+            if a bright slide drifts leftwards. */}
+        <div className="absolute inset-y-0 left-0 w-1/2 bg-gradient-to-r from-brand-900 via-brand-900/70 to-transparent" />
+        {/* Softens the top and bottom edges into the band. */}
+        <div className="absolute inset-x-0 top-0 h-20 bg-gradient-to-b from-brand-900 to-transparent" />
+        <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-brand-900 to-transparent" />
+      </div>
+
+      {/* Shown only when motion is reduced, so the space is never empty. */}
+      <div className="hidden motion-reduce:contents">
+        <SlideCollage />
+      </div>
+    </>
   );
 }
 

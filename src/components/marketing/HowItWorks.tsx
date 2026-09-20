@@ -17,14 +17,14 @@ const STEPS: Step[] = [
   {
     number: 1,
     title: "Tell us what you need",
-    body: "Pick the treatment, the look and the deadline in the order wizard. The estimate updates as you choose, so you see the price before you commit.",
+    body: "Choose your design level, style direction, slide count, and delivery date in the wizard. The quote updates live as you click, so you see the total cost before you commit.",
     note: "Pick the turnaround you need. The wizard shows the exact delivery date, skipping weekends and public holidays.",
     Icon: TasksIcon,
   },
   {
     number: 2,
     title: "Send your deck and brief",
-    body: "Upload your file or share a link, then tell us what the deck is for and what must not change. Logos, wording, numbers, anything you want left alone.",
+    body: "Upload your presentation file or paste a link, then add your brief in the notes. Tell us what the deck is for and specify anything you want left untouched, such as logos, exact wording, or data tables.",
     note: "PowerPoint, Google Slides, Keynote, PDF, Word and images are all accepted.",
     Icon: UploadIcon,
   },
@@ -130,7 +130,7 @@ export function HowItWorks() {
       <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6">
         <p className="eyebrow">How it works</p>
         <h2 className="mt-2 text-2xl font-bold">Five steps from your deck to finished slides</h2>
-        <p className="mt-2 max-w-2xl text-muted">The whole order runs in one place. You see the price before you pay, the progress while we work, and the finished slides before any money is released.</p>
+        <p className="mt-2 max-w-2xl text-muted">The whole order runs in one place. You see the price before you pay, the progress while we work, and the finished slides before payment is released.</p>
 
         <div className="mt-10 grid gap-12 lg:grid-cols-[1.1fr_1fr] lg:items-start lg:gap-16">
           {/* The five steps */}
@@ -207,7 +207,7 @@ export function HowItWorks() {
           <Link href="/order" className="btn-accent shrink-0 !px-7 !py-3 !text-base">
             Start your order
           </Link>
-          <p className="text-sm text-muted sm:ml-2">No account is needed to get a price, and nothing is charged until you confirm.</p>
+          <p className="text-sm text-muted sm:ml-2">No account is needed to get started, and nothing is charged until you confirm.</p>
         </div>
       </div>
     </section>

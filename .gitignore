@@ -48,3 +48,9 @@ next-env.d.ts
 *.db-journal
 /uploads/*
 !/uploads/.gitkeep
+
+# Raw video and image masters dropped in the project root. The web-sized
+# versions that actually ship live in public/marketing/ and are committed.
+/*.webm
+/*.mp4
+/*.mov

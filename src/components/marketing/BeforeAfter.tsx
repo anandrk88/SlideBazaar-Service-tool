@@ -95,15 +95,12 @@ function SlideFrame({ src, alt, children }: { src: string | null; alt: string; c
 }
 
 export function BeforeAfter() {
-  // The "drawn for this page" disclaimer must not survive a real screenshot going in.
-  const allDrawn = !PAIR.before.src && !PAIR.after.src;
-
   return (
     <section id="before-after" className="mx-auto max-w-7xl px-4 py-16 sm:px-6">
       <p className="eyebrow">Before and after</p>
       <h2 className="mt-2 text-2xl font-bold">The same slide, rebuilt</h2>
       <p className="mt-2 max-w-2xl text-muted">
-        {allDrawn ? "A generic mock-up drawn for this page, not customer work. " : ""}Your own deck keeps your words, your numbers and anything you tell us to leave alone.
+        We redesign the layout, not your message. Your words and data stay intact, and we don&rsquo;t touch anything you tell us to leave alone.
       </p>
 
       <div className="mt-8 grid gap-5 sm:grid-cols-2">
@@ -135,7 +132,7 @@ export function BeforeAfter() {
         </p>
         <p className="flex items-start gap-3 text-sm text-muted">
           <LockIcon width={22} height={22} className="mt-0.5 shrink-0 text-accent-500" aria-hidden="true" />
-          <span>Previews are watermarked until you approve. We hold your payment and release it only when you do, with a full refund if you do not.</span>
+          <span>Previews are watermarked until you approve. Payment is held securely and only released upon your approval, with a full refund if you do not.</span>
         </p>
       </div>
     </section>

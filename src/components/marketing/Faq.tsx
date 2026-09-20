@@ -71,7 +71,10 @@ const GROUPS: FaqGroup[] = [
         id: "revisions",
         question: "Can I ask for changes?",
         answer: (
-          <p>Yes. Request a revision from your order page and add notes on what you want changed. Your designer picks up the feedback and sends a new draft for you to review.</p>
+          <>
+            <p>Yes. Request a revision from your order page and add notes on what you want changed. Your designer picks up the feedback and sends a new draft for you to review.</p>
+            <p className="mt-2">The clearer your brief, the closer the draft is to what you want. Mention slide numbers where you can.</p>
+          </>
         ),
       },
     ],
@@ -130,7 +133,9 @@ const GROUPS: FaqGroup[] = [
       {
         id: "download",
         question: "Can I download the original PowerPoint?",
-        answer: <p>Yes, once you have approved. You can take the slide images one at a time or download the whole set in one go, along with the PowerPoint file.</p>,
+        answer: (
+          <p>Yes. Once you approve the designs, you can download the fully editable presentation file, plus high-resolution slide images individually or as a complete set.</p>
+        ),
       },
       {
         id: "nda",
@@ -178,7 +183,10 @@ export function Faq() {
                   <details key={item.id} className="group card">
                     <summary className="flex list-none cursor-pointer items-start justify-between gap-3 rounded-2xl px-4 py-3.5 text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:ring-offset-2 [&::-webkit-details-marker]:hidden">
                       <span>{item.question}</span>
-                      <ChevronDownIcon width={20} height={20} aria-hidden="true" className="mt-0.5 shrink-0 text-accent-600 transition-transform duration-200 group-open:rotate-180" />
+                      {/* Given a filled circle so it reads as a control rather than decoration. */}
+                      <span className="mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-full bg-accent-50 text-accent-700 transition group-open:bg-accent-500 group-open:text-white">
+                        <ChevronDownIcon width={16} height={16} aria-hidden="true" className="transition-transform duration-200 group-open:rotate-180" />
+                      </span>
                     </summary>
                     <div className="border-t border-slate-100 px-4 pb-4 pt-3 text-sm leading-relaxed text-muted">{item.answer}</div>
                   </details>
@@ -190,14 +198,14 @@ export function Faq() {
       </div>
 
       <p className="mt-10 text-sm text-muted">
-        Still not answered? Email{" "}
+        Still have questions? Email{" "}
         <a
           href={`mailto:${SUPPORT_EMAIL}`}
           className="font-semibold text-accent-700 underline underline-offset-2 hover:text-accent-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-500 focus-visible:ring-offset-2 rounded"
         >
           {SUPPORT_EMAIL}
         </a>{" "}
-        and a person will reply.
+        and our team will get back to you.
       </p>
     </section>
   );

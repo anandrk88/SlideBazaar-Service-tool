@@ -14,10 +14,13 @@ export function Guarantee() {
           <p className="eyebrow">Your money</p>
           <h2 className="mt-2 text-2xl font-bold">Your money is protected</h2>
           <p className="mt-3 text-muted">
-            Your order total is charged upfront and held by SlideBazaar. No third party holds it, and we do not treat it as earned until you click Approve on your final designs. If you do not approve,
-            or we cannot deliver what you asked for, it is refunded in full to your original payment method. This is our own money-back guarantee.
+            Your payment is held securely by SlideBazaar and is never released until you click &ldquo;Approve&rdquo; on the final designs. If you decline the work or we fall short of your brief, you
+            get a 100% refund to your original payment method.
           </p>
-          <p className="mt-3 text-muted">Chose &ldquo;Let us decide&rdquo;? We hold the upper estimate and refund the difference when you approve.</p>
+          <p className="mt-3 text-muted">
+            Not sure about your requirements? Choose &ldquo;Let us decide&rdquo; and we will review your deck to pick the best treatment for you. We hold the upper estimate and refund the difference
+            once you approve.
+          </p>
         </div>
         <div className="grid gap-3 text-sm sm:grid-cols-2">
           {[
