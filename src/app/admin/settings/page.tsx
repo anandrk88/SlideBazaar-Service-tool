@@ -20,7 +20,7 @@ export default async function SettingsPage() {
         <h1 className="mt-1 text-2xl font-bold">Pricing &amp; services</h1>
         <p className="text-sm text-muted">
           What the order wizard offers and what it charges. Prices are per slide at the standard delivery speed; faster speeds multiply them. Changes apply to new orders only. Turn an option off instead
-          of deleting it so past orders keep their labels.
+          of deleting it so past orders keep their labels. The homepage screenshot in the &ldquo;How it works&rdquo; section shows these treatments and prices, so it needs re-taking when they change.
         </p>
       </div>
 

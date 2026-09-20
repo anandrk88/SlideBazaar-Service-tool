@@ -85,6 +85,33 @@ const DRAFT_PREVIEWS: { src: string | null; chart: boolean }[] = [
   { src: null, chart: true },
 ];
 
+/**
+ * A real screenshot of the order form's first screen. It is the illustration
+ * beside the five steps, standing where the drawn order card used to.
+ *
+ * Leave src null and OrderCardMock takes its place, so the section still has a
+ * visual with no file present. width and height are the file's own pixel size
+ * and have to be kept in step with it, so the browser reserves the right box
+ * and nothing shifts as it loads.
+ *
+ * This is the live wizard, so everything inside it comes from the catalogue:
+ * treatment names, taglines, per-slide prices and the "Most popular" badge are
+ * all editable under Admin > Settings > Pricing & services, with no deploy.
+ * A stale shot therefore contradicts the running app. Re-capture it when the
+ * catalogue changes, or set src to null until you can.
+ * See public/marketing/README.md.
+ *
+ * Crop: left 276, top 67, 1353x775 out of a capture of /order at roughly a
+ * 1900px viewport. That drops the site header (hairline at y=66) so the page
+ * does not show a second copy of its own nav, and the sticky footer bar
+ * (hairline at y=870) which is where the dev-tools badge sits.
+ */
+const WIZARD_SHOT: { src: string | null; width: number; height: number } = {
+  src: "/marketing/order-wizard.webp",
+  width: 1353,
+  height: 775,
+};
+
 function PreviewThumb({ src, chart = false }: { src?: string | null; chart?: boolean }) {
   if (src) {
     return (
@@ -124,6 +151,59 @@ function PreviewThumb({ src, chart = false }: { src?: string | null; chart?: boo
   );
 }
 
+/**
+ * The drawn stand-in for the order page, used when no real screenshot is
+ * named in WIZARD_SHOT. It is the only picture of what happens AFTER payment
+ * (held payment, watermarked drafts, approve to release), so it is kept
+ * rather than deleted: blank out WIZARD_SHOT.src and it comes straight back.
+ */
+function OrderCardMock() {
+  return (
+    <div className="card p-5 sm:p-6" aria-hidden="true">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-center gap-2.5">
+          <span className="grid h-9 w-9 place-items-center rounded-xl bg-brand-50 text-brand-600">
+            <LockIcon width={20} height={20} />
+          </span>
+          <div>
+            <p className="text-sm font-bold leading-tight">Your order</p>
+            <p className="text-xs text-muted">Payment held by SlideBazaar</p>
+          </div>
+        </div>
+        <span className="chip shrink-0 bg-accent-50 text-accent-700">In progress</span>
+      </div>
+
+      <ol className="mt-6 grid grid-cols-4">
+        {STAGES.map((stage, i) => (
+          <li key={stage.label} className="relative flex flex-col items-center">
+            {i > 0 && <span className={`absolute -left-1/2 top-1.5 h-0.5 w-full ${stage.status === "todo" ? "bg-slate-200" : "bg-accent-500"}`} />}
+            <span className={`relative h-3.5 w-3.5 rounded-full ${DOT_STYLE[stage.status]}`} />
+            <span className={`mt-2.5 px-1 text-center text-[11px] leading-tight ${LABEL_STYLE[stage.status]}`}>{stage.label}</span>
+          </li>
+        ))}
+      </ol>
+
+      <div className="mt-6 rounded-xl bg-surface p-3">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">Draft previews</p>
+        <div className="mt-2 grid grid-cols-2 gap-2.5">
+          {DRAFT_PREVIEWS.map((p, i) => (
+            <PreviewThumb key={i} src={p.src} chart={p.chart} />
+          ))}
+        </div>
+        <p className="mt-2.5 flex items-start gap-1.5 text-[11px] text-muted">
+          <LockIcon width={13} height={13} className="mt-px shrink-0" />
+          Watermarked until you approve
+        </p>
+      </div>
+
+      <p className="mt-4 flex items-start gap-2 text-xs text-ink/80">
+        <CheckIcon width={15} height={15} className="mt-px shrink-0 text-accent-500" />
+        Approve to release the payment and download the original file.
+      </p>
+    </div>
+  );
+}
+
 export function HowItWorks() {
   return (
     <section id="how-it-works" className="bg-white">
@@ -155,50 +235,25 @@ export function HowItWorks() {
 
           {/* Supporting visual */}
           <figure className="m-0 lg:sticky lg:top-24">
-            <div className="card p-5 sm:p-6" aria-hidden="true">
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex items-center gap-2.5">
-                  <span className="grid h-9 w-9 place-items-center rounded-xl bg-brand-50 text-brand-600">
-                    <LockIcon width={20} height={20} />
-                  </span>
-                  <div>
-                    <p className="text-sm font-bold leading-tight">Your order</p>
-                    <p className="text-xs text-muted">Payment held by SlideBazaar</p>
-                  </div>
-                </div>
-                <span className="chip shrink-0 bg-accent-50 text-accent-700">In progress</span>
+            {WIZARD_SHOT.src ? (
+              <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+                <Image
+                  src={WIZARD_SHOT.src}
+                  alt="The first screen of the SlideBazaar order form, showing the treatment options and their rates per slide"
+                  width={WIZARD_SHOT.width}
+                  height={WIZARD_SHOT.height}
+                  sizes="(min-width: 1024px) 560px, 100vw"
+                  quality={90}
+                  className="h-auto w-full"
+                />
               </div>
-
-              <ol className="mt-6 grid grid-cols-4">
-                {STAGES.map((stage, i) => (
-                  <li key={stage.label} className="relative flex flex-col items-center">
-                    {i > 0 && <span className={`absolute -left-1/2 top-1.5 h-0.5 w-full ${stage.status === "todo" ? "bg-slate-200" : "bg-accent-500"}`} />}
-                    <span className={`relative h-3.5 w-3.5 rounded-full ${DOT_STYLE[stage.status]}`} />
-                    <span className={`mt-2.5 px-1 text-center text-[11px] leading-tight ${LABEL_STYLE[stage.status]}`}>{stage.label}</span>
-                  </li>
-                ))}
-              </ol>
-
-              <div className="mt-6 rounded-xl bg-surface p-3">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">Draft previews</p>
-                <div className="mt-2 grid grid-cols-2 gap-2.5">
-                  {DRAFT_PREVIEWS.map((p, i) => (
-                    <PreviewThumb key={i} src={p.src} chart={p.chart} />
-                  ))}
-                </div>
-                <p className="mt-2.5 flex items-start gap-1.5 text-[11px] text-muted">
-                  <LockIcon width={13} height={13} className="mt-px shrink-0" />
-                  Watermarked until you approve
-                </p>
-              </div>
-
-              <p className="mt-4 flex items-start gap-2 text-xs text-ink/80">
-                <CheckIcon width={15} height={15} className="mt-px shrink-0 text-accent-500" />
-                Approve to release the payment and download the original file.
-              </p>
-            </div>
+            ) : (
+              <OrderCardMock />
+            )}
             <figcaption className="mt-3 text-xs text-muted">
-              An illustration of the order page. The status runs from Paid to Designing to Your review to Approved. Previews stay watermarked until you approve, and the original files unlock after that.
+              {WIZARD_SHOT.src
+                ? "The first screen of the order form, where you choose how much of the deck we change. Each treatment carries its own rate per slide, and the estimate in the corner updates as you click."
+                : "An illustration of the order page. The status runs from Paid to Designing to Your review to Approved. Previews stay watermarked until you approve, and the original files unlock after that."}
             </figcaption>
           </figure>
         </div>

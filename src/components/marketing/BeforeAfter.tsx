@@ -5,17 +5,17 @@ import { LockIcon, ShieldCheckIcon } from "@/components/Icons";
 /**
  * Real screenshots for the before and after slides.
  *
- * Drop image files into public/marketing/ and name them here, for example
- * "/marketing/before.png". Leave a src null and the drawn mock-up is used
- * instead, so the page renders correctly with none, one or both in place.
- * Landscape images work best; anything else is cropped to 16:9.
+ * Drop image files into public/marketing/ and name them here. Leave a src null
+ * and the drawn mock-up below is used instead, so the page renders correctly
+ * with none, one or both in place. 16:9 works best; anything else is letterboxed
+ * rather than cropped, so no part of a slide is ever cut off.
  *
- * Edit the caption alongside the src. The captions below describe the drawn
- * mock-ups, so they will be wrong once a real image takes their place.
+ * Edit the caption alongside the src. A caption describes one specific slide,
+ * so it is wrong the moment a different image takes its place.
  */
 const PAIR: { before: { src: string | null; caption: string }; after: { src: string | null; caption: string } } = {
-  before: { src: null, caption: "A wall of body text with two placeholder boxes doing the work of a diagram." },
-  after: { src: null, caption: "One idea per slide, with a data graphic that carries the point." },
+  before: { src: "/marketing/slide-before.webp", caption: "The stock dark template: everything centre-aligned, one type size doing every job, and the speaker details squeezed in at the bottom." },
+  after: { src: "/marketing/slide-after.webp", caption: "Rebuilt on brand: the title given room and weight, an image carrying the subject, and the contact details in a band of their own." },
 };
 
 /* ------------------------------------------------------------------ */
@@ -87,7 +87,7 @@ function SlideFrame({ src, alt, children }: { src: string | null; alt: string; c
   if (src) {
     return (
       <div className="relative aspect-video overflow-hidden rounded-xl border border-slate-200 bg-white">
-        <Image src={src} alt={alt} fill sizes="(min-width: 640px) 45vw, 90vw" className="object-cover" />
+        <Image src={src} alt={alt} fill sizes="(min-width: 640px) 45vw, 90vw" className="object-contain" />
       </div>
     );
   }
