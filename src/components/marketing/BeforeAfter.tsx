@@ -14,8 +14,8 @@ import { LockIcon, ShieldCheckIcon } from "@/components/Icons";
  * so it is wrong the moment a different image takes its place.
  */
 const PAIR: { before: { src: string | null; caption: string }; after: { src: string | null; caption: string } } = {
-  before: { src: "/marketing/slide-before.webp", caption: "The stock dark template: everything centre-aligned, one type size doing every job, and the speaker details squeezed in at the bottom." },
-  after: { src: "/marketing/slide-after.webp", caption: "Rebuilt on brand: the title given room and weight, an image carrying the subject, and the contact details in a band of their own." },
+  before: { src: "/marketing/slide-before.webp", caption: "Four tall cards two-thirds empty, a headline running flat in a single weight, and the closing line stranded at the bottom." },
+  after: { src: "/marketing/slide-after.webp", caption: "The same four points tightened into a two-by-two grid with an icon each, the headline broken so the emphasis lands on the second half, and the closing line given a column of its own." },
 };
 
 /* ------------------------------------------------------------------ */

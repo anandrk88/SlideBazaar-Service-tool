@@ -17,7 +17,7 @@ import { DEFAULT_CALENDAR, upcomingHolidays, type BusinessCalendar } from "@/lib
 import { readPptx } from "@/lib/pptx";
 import { bytes, longDate, money, moneyRange } from "@/lib/format";
 import { AuthForm } from "@/components/AuthForm";
-import { CheckIcon, LockIcon, TreatmentIcon, UploadIcon } from "@/components/Icons";
+import { CheckIcon, ChevronDownIcon, LockIcon, TreatmentIcon, UploadIcon } from "@/components/Icons";
 
 const STEPS = ["Treatment", "Style", "Delivery", "Files & details", "Payment"];
 const DRAFT_KEY = "sb-order-draft-v4";
@@ -261,7 +261,7 @@ export function OrderWizard({
         {/* ---------------- STEP 1 ---------------- */}
         {step === 1 && (
           <section>
-            <StepHeading n={1} title="How much should we change?" subtitle="Every treatment is priced per slide at standard delivery. Faster delivery is priced in step 3." />
+            <StepHeading n={1} title="How much should we change?" subtitle={`Every treatment is priced per slide at standard delivery. Faster delivery is priced in step${"\u00a0"}3.`} />
             <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {cat.treatments.map((t) => (
                 <button type="button" key={t.id} data-selected={draft.treatment === t.id} onClick={() => set("treatment", t.id)} className="option-card">
@@ -295,7 +295,7 @@ export function OrderWizard({
         {/* ---------------- STEP 2 ---------------- */}
         {step === 2 && (
           <section>
-            <StepHeading n={2} title="Which look should we design in?" subtitle="Pick a direction. You can still send brand files and references in step 4." />
+            <StepHeading n={2} title="Which look should we design in?" subtitle={`Pick a direction. You can still send brand files and references in step${"\u00a0"}4.`} />
             <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {cat.styles.map((s) => (
                 <div key={s.id} role="button" tabIndex={0} data-selected={draft.style === s.id} onClick={() => set("style", s.id)} onKeyDown={(e) => e.key === "Enter" && set("style", s.id)} className="option-card !p-0">
@@ -442,7 +442,7 @@ export function OrderWizard({
         {/* ---------------- STEP 4 ---------------- */}
         {step === 4 && (
           <section className="space-y-6">
-            <StepHeading n={4} title="Send us the deck and your brief" subtitle="The clearer the brief, the closer the first draft. Mention slide numbers where you can." />
+            <StepHeading n={4} title="Send us the deck and your brief" subtitle="The clearer your brief, the closer the draft is to what you want. Mention the slide numbers where you can." />
 
             <div className="card p-6 sm:p-8">
               <h3 className="font-semibold">Your files</h3>
@@ -474,11 +474,24 @@ export function OrderWizard({
                 value={draft.brief}
                 onChange={(e) => set("brief", e.target.value)}
               />
-              <button type="button" onClick={() => setShowOptional((s) => !s)} className="mt-5 flex w-full items-center justify-between border-t border-slate-100 pt-4 text-left text-sm font-semibold">
-                Helpful extras <span className="text-xs font-normal text-muted">{showOptional ? "Hide" : "Audience, brand, fonts and colours"}</span>
+              {/* Reads as a control rather than a heading: a bordered row, a
+                  chevron that turns, and hover feedback, so it is obvious the
+                  extras are hidden behind it rather than simply absent. */}
+              <button
+                type="button"
+                onClick={() => setShowOptional((s) => !s)}
+                aria-expanded={showOptional}
+                aria-controls="helpful-extras"
+                className="mt-5 flex w-full items-center justify-between gap-3 rounded-xl border border-slate-200 px-4 py-3 text-left text-sm font-semibold transition hover:border-slate-300 hover:bg-surface"
+              >
+                <span className="flex min-w-0 items-center gap-2">
+                  <ChevronDownIcon width={16} height={16} aria-hidden="true" className={`shrink-0 text-muted transition-transform duration-200 ${showOptional ? "rotate-180" : ""}`} />
+                  Helpful extras
+                </span>
+                <span className="shrink-0 text-xs font-normal text-muted">{showOptional ? "Hide" : "Audience, brand, fonts and colours"}</span>
               </button>
               {showOptional && (
-                <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                <div id="helpful-extras" className="mt-4 grid gap-4 sm:grid-cols-2">
                   <div>
                     <label className="label">Who is the audience?</label>
                     <input className="input" value={draft.audience} onChange={(e) => set("audience", e.target.value)} placeholder="Investors, sales prospects, internal team..." />
@@ -634,7 +647,8 @@ function StepHeading({ n, title, subtitle }: { n: number; title: string; subtitl
     <header className="max-w-2xl">
       <p className="eyebrow">Step {n} of 5</p>
       <h1 className="mt-2 text-2xl font-bold sm:text-3xl">{title}</h1>
-      <p className="mt-2 text-muted">{subtitle}</p>
+      {/* text-pretty keeps a subtitle from ending on a single short word. */}
+      <p className="mt-2 text-pretty text-muted">{subtitle}</p>
     </header>
   );
 }

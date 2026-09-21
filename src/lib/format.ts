@@ -17,6 +17,11 @@ export function shortDate(d: Date | string) {
   return new Intl.DateTimeFormat("en-GB", { day: "2-digit", month: "short" }).format(new Date(d));
 }
 
+/**
+ * A deadline shown to a customer. The zone is named because the reader has to
+ * know whose 18:00 it is: Intl renders in the READER's zone, so the same stored
+ * instant reads differently to a customer in Mumbai and a designer in London.
+ */
 export function longDate(d: Date | string) {
   return new Intl.DateTimeFormat("en-GB", {
     day: "numeric",
@@ -24,6 +29,7 @@ export function longDate(d: Date | string) {
     year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
+    timeZoneName: "short",
   }).format(new Date(d));
 }
 
@@ -34,6 +40,7 @@ export function dateTime(d: Date | string) {
     year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
+    timeZoneName: "short",
   }).format(new Date(d));
 }
 
