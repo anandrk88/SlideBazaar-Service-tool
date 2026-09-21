@@ -14,6 +14,7 @@ import {
 } from "@/lib/catalog";
 import { clampSlides, deliveryDate, productionDays, quote, tierRanges } from "@/lib/pricing";
 import { DEFAULT_CALENDAR, upcomingHolidays, type BusinessCalendar } from "@/lib/calendar";
+import { useWizardTracker } from "./useWizardTracker";
 import { readPptx } from "@/lib/pptx";
 import { bytes, longDate, money, moneyRange } from "@/lib/format";
 import { AuthForm } from "@/components/AuthForm";
@@ -110,7 +111,12 @@ export function OrderWizard({
     } catch {}
   }, [draft, hydrated]);
 
-  const set = <K extends keyof Draft>(key: K, value: Draft[K]) => setDraft((d) => ({ ...d, [key]: value }));
+  const track = useWizardTracker();
+
+  const set = <K extends keyof Draft>(key: K, value: Draft[K]) => {
+    setDraft((d) => ({ ...d, [key]: value }));
+    track.touch(key);
+  };
 
   const estimate = useMemo(() => {
     if (!draft.treatment || !draft.deliveryTier || draft.slideCount < MIN_SLIDES) return null;
@@ -121,6 +127,25 @@ export function OrderWizard({
     }
   }, [draft.treatment, draft.deliveryTier, draft.slideCount, draft.proofreading, catalog, calendar]);
 
+  // Keeps the tracker's payload current. It never sends on its own: sending is
+  // driven by touch/flush/blocked/submitted, so rendering the page without
+  // touching it records nothing. The snapshot is built from named fields rather
+  // than spreading the draft, so billing values and the Google Slides link
+  // cannot drift into it later.
+  useEffect(() => {
+    if (!hydrated) return;
+    track.sync({
+      step,
+      draft,
+      files,
+      styleFiles,
+      detected,
+      showOptional,
+      signedIn: Boolean(user),
+      estimateCents: estimate?.totalCents ?? null,
+    });
+  }, [step, draft, files, styleFiles, detected, showOptional, user, estimate, hydrated, track]);
+
   const holidaysAhead = useMemo(() => upcomingHolidays(calendar).slice(0, 3), [calendar]);
   const selectedTreatment = cat.treatments.find((t) => t.id === draft.treatment);
   const selectedStyle = cat.styles.find((s) => s.id === draft.style);
@@ -129,6 +154,7 @@ export function OrderWizard({
 
   async function onFiles(next: File[]) {
     setFiles(next);
+    track.touch("files");
     const pptx = next.find((f) => /\.pptx$/i.test(f.name));
     if (!pptx) return setDetected(null);
     try {
@@ -159,26 +185,41 @@ export function OrderWizard({
 
   function next() {
     const err = validate(step);
-    if (err) return setError(err);
+    if (err) {
+      track.blocked(step, err);
+      return setError(err);
+    }
     setError(null);
-    setStep((s) => Math.min(5, s + 1));
+    const to = Math.min(5, step + 1);
+    setStep(to);
+    // The step is passed explicitly: the sync effect only refreshes the payload
+    // after the re-render, so a bare flush() would report the previous step, and
+    // the step change is the entire point of this.
+    track.flush({ step: to });
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
   function back() {
     setError(null);
-    setStep((s) => Math.max(1, s - 1));
+    const to = Math.max(1, step - 1);
+    setStep(to);
+    track.flush({ step: to });
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   async function submitOrder() {
+    track.submitted();
     for (let s = 1; s <= 4; s++) {
       const err = validate(s);
       if (err) {
         setStep(s);
+        track.blocked(s, err);
         return setError(err);
       }
     }
-    if (!user) return setError("Please log in or create an account to place your order");
+    if (!user) {
+      track.blocked(5, "Not signed in");
+      return setError("Please log in or create an account to place your order");
+    }
     setSubmitting(true);
     setError(null);
     const fd = new FormData();
@@ -200,6 +241,9 @@ export function OrderWizard({
       billingCountry: draft.billingCountry,
       billingVat: draft.billingVat,
     };
+    // Lets the server close this attempt out as converted. Null when the browser
+    // refuses storage, in which case the order is simply untracked.
+    if (track.attemptId) entries.attemptId = track.attemptId;
     for (const [k, v] of Object.entries(entries)) fd.append(k, v);
     files.forEach((f) => fd.append("files", f));
     styleFiles.forEach((f) => fd.append("styleFiles", f));
@@ -207,13 +251,19 @@ export function OrderWizard({
       const res = await fetch("/api/orders", { method: "POST", body: fd });
       const json = await res.json();
       if (!res.ok) {
+        track.blocked(5, json.error ?? "Could not create your order");
         setError(json.error ?? "Could not create your order");
         setSubmitting(false);
         return;
       }
       localStorage.removeItem(DRAFT_KEY);
+      // The server marks this converted while handling the order. Stop tracking
+      // here so the beacon fired into the checkout navigation cannot recreate a
+      // row for somebody who just paid.
+      track.finish();
       window.location.href = json.checkoutUrl;
     } catch {
+      track.blocked(5, "Network error");
       setError("Network error. Please try again.");
       setSubmitting(false);
     }
@@ -235,7 +285,15 @@ export function OrderWizard({
               const active = n === step;
               return (
                 <li key={label} className="flex-1">
-                  <button type="button" onClick={() => done && setStep(n)} className={`w-full text-left ${done ? "cursor-pointer" : "cursor-default"}`}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!done) return;
+                      setStep(n);
+                      track.flush({ step: n });
+                    }}
+                    className={`w-full text-left ${done ? "cursor-pointer" : "cursor-default"}`}
+                  >
                     <div className={`h-1.5 rounded-full transition ${done || active ? "bg-accent-500" : "bg-slate-200"}`} />
                     <div className="mt-1.5 flex items-center gap-1.5 text-xs">
                       <span className={`grid h-4 w-4 place-items-center rounded-full text-[10px] font-bold ${done ? "bg-accent-500 text-white" : active ? "bg-ink text-white" : "bg-slate-200 text-slate-500"}`}>
@@ -312,6 +370,7 @@ export function OrderWizard({
                         accept={ACCEPTED_UPLOAD_EXTENSIONS.join(",")}
                         onChange={(e) => {
                           setStyleFiles(Array.from(e.target.files ?? []));
+                          track.touch("styleFiles");
                           set("style", s.id);
                         }}
                       />
@@ -474,12 +533,21 @@ export function OrderWizard({
                 value={draft.brief}
                 onChange={(e) => set("brief", e.target.value)}
               />
+              <p className="mt-2 text-xs text-muted">
+                We save your answers as you go, so you can come back to them and so we can see where this form gets in the way.{" "}
+                <a href="https://slidebazaar.com/privacy-policy/" target="_blank" rel="noreferrer" className="underline underline-offset-2">
+                  How we use them
+                </a>
+              </p>
               {/* Reads as a control rather than a heading: a bordered row, a
                   chevron that turns, and hover feedback, so it is obvious the
                   extras are hidden behind it rather than simply absent. */}
               <button
                 type="button"
-                onClick={() => setShowOptional((s) => !s)}
+                onClick={() => {
+                  setShowOptional((s) => !s);
+                  track.touch("extras");
+                }}
                 aria-expanded={showOptional}
                 aria-controls="helpful-extras"
                 className="mt-5 flex w-full items-center justify-between gap-3 rounded-xl border border-slate-200 px-4 py-3 text-left text-sm font-semibold transition hover:border-slate-300 hover:bg-surface"
@@ -531,7 +599,7 @@ export function OrderWizard({
                     </div>
                   ) : (
                     <div className="mt-4">
-                      <AuthForm mode={authMode} inline onSwitchMode={setAuthMode} onSuccess={(u) => setUser(u)} />
+                      <AuthForm mode={authMode} inline onSwitchMode={setAuthMode} onSuccess={(u) => { setUser(u); track.flush({ signedIn: true }); }} />
                     </div>
                   )}
                 </div>

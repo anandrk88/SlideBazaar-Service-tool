@@ -103,6 +103,14 @@ deployment. See the end of `docs/STORAGE-R2.md`.
 | Apply migrations | `npx prisma migrate deploy` |
 | Create an admin | `ADMIN_EMAIL=... npm run bootstrap` |
 | Settle stuck refunds | `npm run refunds:settle` |
+| Apply order-form retention | `npm run wizard:purge` |
+
+`wizard:purge` applies the retention rule on the order-form drop-off table:
+it clears what people typed 30 days after they last used the form and deletes
+the row at 90. It normally runs on its own, from the collection endpoint,
+which covers it whenever the form is being used. Run it by hand after a quiet
+stretch, when nothing has been collecting to trigger it, or whenever you need
+to be able to say in writing that the published window has been applied.
 
 ## Credentials to rotate
 

@@ -32,6 +32,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             { href: "/admin/escrow", label: "Escrow ledger", icon: "lock" },
             { href: "/admin/team", label: "Team & customers", icon: "users" },
             { href: "/admin/calendar", label: "Calendar", icon: "calendar" },
+            { href: "/admin/funnel", label: "Order form drop-off", icon: "tasks" },
             { href: "/admin/settings", label: "Pricing & services", icon: "tag" },
             { href: "/admin/homepage", label: "Homepage", icon: "pencil" },
           ];

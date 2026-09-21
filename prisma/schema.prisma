@@ -16,38 +16,39 @@ datasource db {
 }
 
 model User {
-  id           String   @id @default(cuid())
-  email        String   @unique
+  id               String    @id @default(cuid())
+  email            String    @unique
   // Null for an account that only signs in through a provider. Every password
   // check must cope with that; see verifyPassword in src/lib/auth.ts.
-  passwordHash String?
+  passwordHash     String?
   // When somebody proved they control this mailbox. Null means nobody has, so
   // the address alone is not evidence of anything.
-  emailVerified DateTime?
-  image        String?
+  emailVerified    DateTime?
+  image            String?
   // Bumped to invalidate every outstanding session token for this user.
-  sessionVersion Int    @default(0)
-  name         String
-  phone        String?
-  company      String?
-  role         String   @default("CUSTOMER") // CUSTOMER | ADMIN | MANAGER | DESIGNER
-  billingAddress String?
-  billingCity    String?
-  billingCountry String?
-  billingVat     String?
-  marketingOptIn Boolean @default(false)
+  sessionVersion   Int       @default(0)
+  name             String
+  phone            String?
+  company          String?
+  role             String    @default("CUSTOMER") // CUSTOMER | ADMIN | MANAGER | DESIGNER
+  billingAddress   String?
+  billingCity      String?
+  billingCountry   String?
+  billingVat       String?
+  marketingOptIn   Boolean   @default(false)
   stripeCustomerId String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 
-  orders          Order[]        @relation("CustomerOrders")
-  assignedOrders  Order[]        @relation("DesignerOrders")
-  uploadedFiles   OrderFile[]
-  events          OrderEvent[]
-  messages        OrderMessage[]
-  escrowEntries   EscrowEntry[]
-  notifications   Notification[]
-  identities      AuthIdentity[]
+  orders             Order[]             @relation("CustomerOrders")
+  assignedOrders     Order[]             @relation("DesignerOrders")
+  uploadedFiles      OrderFile[]
+  events             OrderEvent[]
+  messages           OrderMessage[]
+  escrowEntries      EscrowEntry[]
+  wizardAttempts     WizardAttempt[]
+  notifications      Notification[]
+  identities         AuthIdentity[]
   verificationTokens VerificationToken[]
 }
 
@@ -60,10 +61,10 @@ model AuthIdentity {
   id                      String    @id @default(cuid())
   userId                  String
   user                    User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  provider                String    // GOOGLE | AMEMBER
-  providerAccountId       String    // Google `sub`; aMember numeric id as a string
+  provider                String // GOOGLE | AMEMBER
+  providerAccountId       String // Google `sub`; aMember numeric id as a string
   issuer                  String
-  emailAtLink             String    // what the provider asserted when linked, for audit
+  emailAtLink             String // what the provider asserted when linked, for audit
   emailVerifiedByProvider Boolean   @default(false)
   createdAt               DateTime  @default(now())
   lastLoginAt             DateTime?
@@ -83,7 +84,7 @@ model VerificationToken {
   tokenHash String    @unique
   userId    String
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  purpose   String    // EMAIL_VERIFY | PASSWORD_RESET
+  purpose   String // EMAIL_VERIFY | PASSWORD_RESET
   expiresAt DateTime
   usedAt    DateTime?
   createdAt DateTime  @default(now())
@@ -96,7 +97,7 @@ model Notification {
   id        String    @id @default(cuid())
   userId    String
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  type      String    // ORDER_PAID | ASSIGNED | QC_SUBMITTED | QC_RETURNED | DELIVERED | REVISION | APPROVED | REFUNDED | MESSAGE
+  type      String // ORDER_PAID | ASSIGNED | QC_SUBMITTED | QC_RETURNED | DELIVERED | REVISION | APPROVED | REFUNDED | MESSAGE
   title     String
   body      String
   href      String?
@@ -108,28 +109,28 @@ model Notification {
 }
 
 model Order {
-  id            String   @id @default(cuid())
-  orderNumber   String   @unique
-  customerId    String
-  customer      User     @relation("CustomerOrders", fields: [customerId], references: [id])
-  designerId    String?
-  designer      User?    @relation("DesignerOrders", fields: [designerId], references: [id])
+  id          String  @id @default(cuid())
+  orderNumber String  @unique
+  customerId  String
+  customer    User    @relation("CustomerOrders", fields: [customerId], references: [id])
+  designerId  String?
+  designer    User?   @relation("DesignerOrders", fields: [designerId], references: [id])
 
   // Lifecycle — see src/lib/order-status.ts
-  status        String   @default("PENDING_PAYMENT")
-  escrowStatus  String   @default("NONE") // NONE | HELD | RELEASED | REFUNDED | PARTIALLY_RELEASED
+  status       String @default("PENDING_PAYMENT")
+  escrowStatus String @default("NONE") // NONE | HELD | RELEASED | REFUNDED | PARTIALLY_RELEASED
 
   // Step 1 — treatment
-  treatment       String  // LET_US_DECIDE | FIX_UP | REDESIGN | REDRAW
+  treatment       String // LET_US_DECIDE | FIX_UP | REDESIGN | REDRAW
   finalTreatment  String? // set by the team when treatment is LET_US_DECIDE
   // Step 2 — style
-  style           String  // OWN_STYLE | CORPORATE | CREATIVE | PLAYFUL
+  style           String // OWN_STYLE | CORPORATE | CREATIVE | PLAYFUL
   // Step 3 — delivery
   slideCount      Int
-  deliveryTier    String  // RUSH | EXPRESS | STANDARD
+  deliveryTier    String // RUSH | EXPRESS | STANDARD
   deadlineAt      DateTime
-  proofreading    String  @default("NONE") // NONE | PROOFREADING | EDITING
-  grammar         String  @default("US")   // UK | US
+  proofreading    String   @default("NONE") // NONE | PROOFREADING | EDITING
+  grammar         String   @default("US") // UK | US
   // Step 4 — brief
   brief           String
   googleSlidesUrl String?
@@ -139,29 +140,30 @@ model Order {
   extraNotes      String?
 
   // Pricing snapshot (all amounts in integer cents, USD)
-  currency         String @default("usd")
-  perSlideMinCents Int
-  perSlideMaxCents Int
-  addonPerSlideCents Int  @default(0)
-  subtotalMinCents Int
-  subtotalMaxCents Int
-  totalCents       Int    // amount charged into escrow (upper bound for LET_US_DECIDE)
-  finalTotalCents  Int?   // amount actually earned; set at approval (defaults to totalCents)
+  currency           String @default("usd")
+  perSlideMinCents   Int
+  perSlideMaxCents   Int
+  addonPerSlideCents Int    @default(0)
+  subtotalMinCents   Int
+  subtotalMaxCents   Int
+  totalCents         Int // amount charged into escrow (upper bound for LET_US_DECIDE)
+  finalTotalCents    Int? // amount actually earned; set at approval (defaults to totalCents)
 
-  revisionCount  Int      @default(0)
-  paidAt         DateTime?
-  startedAt      DateTime?
-  deliveredAt    DateTime?
-  approvedAt     DateTime?
-  completedAt    DateTime?
-  cancelledAt    DateTime?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  revisionCount Int       @default(0)
+  paidAt        DateTime?
+  startedAt     DateTime?
+  deliveredAt   DateTime?
+  approvedAt    DateTime?
+  completedAt   DateTime?
+  cancelledAt   DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
   files          OrderFile[]
   previews       SlidePreview[]
   payments       Payment[]
   escrowEntries  EscrowEntry[]
+  wizardAttempts WizardAttempt[]
   refundAttempts RefundAttempt[]
   events         OrderEvent[]
   messages       OrderMessage[]
@@ -177,7 +179,7 @@ model OrderFile {
   order        Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
   uploadedById String?
   uploadedBy   User?    @relation(fields: [uploadedById], references: [id])
-  kind         String   // SOURCE | STYLE_REFERENCE | DRAFT (awaiting QC, staff only) | DELIVERABLE (visible to customer)
+  kind         String // SOURCE | STYLE_REFERENCE | DRAFT (awaiting QC, staff only) | DELIVERABLE (visible to customer)
   originalName String
   storedPath   String
   mimeType     String
@@ -196,8 +198,8 @@ model SlidePreview {
   id           String   @id @default(cuid())
   orderId      String
   order        Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  version      Int      // draft number this preview belongs to
-  index        Int      // 1-based slide order
+  version      Int // draft number this preview belongs to
+  index        Int // 1-based slide order
   originalName String
   storedPath   String
   released     Boolean  @default(false) // true once QC approves the draft
@@ -210,7 +212,7 @@ model Payment {
   id                String   @id @default(cuid())
   orderId           String
   order             Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  provider          String   // STRIPE | MOCK
+  provider          String // STRIPE | MOCK
   providerSessionId String?  @unique
   providerPaymentId String?  @unique
   amountCents       Int
@@ -226,19 +228,19 @@ model Payment {
 /// Append-only escrow ledger. HOLD credits the escrow, RELEASE moves funds to
 /// SlideBazaar revenue, REFUND returns funds to the customer.
 model EscrowEntry {
-  id          String   @id @default(cuid())
-  orderId     String
-  order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  type        String   // HOLD | RELEASE | REFUND
-  amountCents Int
-  note        String?
+  id             String   @id @default(cuid())
+  orderId        String
+  order          Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  type           String // HOLD | RELEASE | REFUND
+  amountCents    Int
+  note           String?
   /// Stable key that makes a repeated write a no-op, e.g. "hold:<orderId>".
   /// Guards against duplicate ledger rows when the webhook and the success
   /// redirect race, or a staff action is double-submitted.
-  idempotencyKey String? @unique
-  createdById String?
-  createdBy   User?    @relation(fields: [createdById], references: [id])
-  createdAt   DateTime @default(now())
+  idempotencyKey String?  @unique
+  createdById    String?
+  createdBy      User?    @relation(fields: [createdById], references: [id])
+  createdAt      DateTime @default(now())
 
   @@index([orderId])
 }
@@ -247,19 +249,19 @@ model EscrowEntry {
 /// records whether the money actually left Stripe. Failed attempts are
 /// retryable by an admin and are never silently dropped.
 model RefundAttempt {
-  id          String   @id @default(cuid())
-  orderId     String
-  order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  paymentId   String?
-  amountCents Int
-  reason      String
-  status      String   @default("PENDING") // PENDING | SUCCEEDED | FAILED
-  attempts    Int      @default(0)
-  lastError   String?
+  id               String    @id @default(cuid())
+  orderId          String
+  order            Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  paymentId        String?
+  amountCents      Int
+  reason           String
+  status           String    @default("PENDING") // PENDING | SUCCEEDED | FAILED
+  attempts         Int       @default(0)
+  lastError        String?
   providerRefundId String?
-  settledAt   DateTime?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  settledAt        DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 
   @@index([orderId])
   @@index([status])
@@ -280,56 +282,207 @@ model OrderEvent {
   @@index([orderId])
 }
 
+/// One run through the order wizard, including every run that never becomes an
+/// Order. Written only by POST /api/wizard-attempt, which is unauthenticated by
+/// design — the people who never sign in are the whole point — so everything here
+/// is unverified visitor input and is never trusted the way Order's copy of the
+/// same answers is.
+///
+/// "Abandoned" is deliberately not a stored state. Nothing fires reliably when a
+/// tab closes, so a stored flag would permanently undercount. A row stays OPEN
+/// and the report derives abandonment from how stale lastSeenAt is.
+///
+/// This is the only table here with a lifespan, because it holds text typed by
+/// people who are not customers. purgeWizardAttempts() in
+/// src/lib/wizard-attempts.ts clears the free text 30 days after lastSeenAt and
+/// deletes the row at 90.
+model WizardAttempt {
+  id        String  @id @default(cuid())
+  /// Minted in the browser, kept in sessionStorage, and the upsert key. It
+  /// survives a reload in that tab and dies with the tab, which is exactly the
+  /// boundary one attempt means. Separate from the primary key on purpose, so an
+  /// admin URL naming a row is not also a working write key.
+  attemptId String  @unique
+  /// Minted in the browser and kept in localStorage. Several attempts by one
+  /// person share it, so the report can tell a second attempt from a second
+  /// person. Null when the browser refuses storage; the report then says how many
+  /// rows it could not match rather than counting them as new people.
+  visitorId String?
+
+  /// Highest write sequence applied. Beacons genuinely arrive out of order, and a
+  /// stale one must not rewind somebody from step 4 back to step 2. Stored in the
+  /// browser beside attemptId, so a reload cannot restart it at 1 and freeze the
+  /// row for the rest of its life.
+  seq Int @default(0)
+
+  /// The step showing at the last write, and the deepest step ever reached. They
+  /// differ on purpose: the step is not part of the saved draft, so a reload puts
+  /// the person back on step 1, and the progress header lets them jump back to a
+  /// step they have finished. maxStep is computed server side and never falls.
+  step    Int @default(1)
+  maxStep Int @default(1)
+
+  /// The last message that refused to let them move on, prefixed with its step.
+  /// Steps 1 to 4 use the wizard's own validation strings. Step 5 has no
+  /// validation branch, so its blockers are submit failures, which is where the
+  /// money is.
+  blocker      String?
+  blockedCount Int     @default(0)
+  /// Times they pressed Pay. Above zero on a row that never converted is somebody
+  /// who tried to buy and did not get through: the most expensive row here.
+  submitCount  Int     @default(0)
+
+  /// Last draft field they edited. Turns "stopped on step 4" into "stopped in the
+  /// brief box", which is a different diagnosis and a different fix.
+  lastField    String?
+  /// Rough active seconds per step, as "1:14,2:9,4:340". Client reported and for
+  /// display only. It separates leaving step 1 after twenty seconds, which is
+  /// never having been interested, from six minutes fighting step 4.
+  stepSeconds  String?
+  /// This tab restored a draft saved more than half an hour earlier, so it is a
+  /// return visit rather than a refresh. Without it a returning visitor looks like
+  /// someone who typed a full brief in three seconds and vanished.
+  resumed      Boolean @default(false)
+  /// The wizard re-mounted in this tab. Refreshing is what a confused person does,
+  /// and because the step is not saved it throws them back to step 1 with their
+  /// brief intact, which is a drop-off candidate in its own right.
+  reloads      Int     @default(0)
+  /// Whether the collapsed "Helpful extras" block was ever opened. An empty
+  /// audience field means nothing without this.
+  openedExtras Boolean @default(false)
+
+  // The choices, using the same codes an order carries. Deliberately not checked
+  // against the live catalogue the way order creation is: this records what the
+  // person picked, and dropping a row because an admin retired an option would
+  // hide the very drop-off that change caused.
+  treatment       String?
+  style           String?
+  slideCount      Int?
+  deliveryTier    String?
+  proofreading    String?
+  grammar         String? // UK | US
+  useGoogleSlides Boolean @default(false)
+  /// The estimate on screen at the last write, in cents. "Saw the total and left"
+  /// is the obvious step 5 hypothesis and cannot be read off the report without it.
+  estimateCents   Int?
+
+  // What they typed. The caps mirror the order schema, so this is never a wider
+  // write surface than the endpoint it shadows. Cleared 30 days after lastSeenAt,
+  // and immediately on conversion.
+  brief       String?
+  audience    String?
+  brandNotes  String?
+  fontsColors String?
+  extraNotes  String?
+
+  /// Which billing boxes were touched, as "address,city,country", never their
+  /// values; the Google Slides link is a flag for the same reason. A
+  /// non-customer's street address, or a live link into their real deck, answers
+  /// nothing about where this form fails. Both survive the content purge, because
+  /// neither is personal data.
+  billingFilled      String?
+  googleSlidesFilled Boolean @default(false)
+
+  /// Uploads never leave the browser before submit, so only their shape is
+  /// reportable. File names are deliberately not stored: a name like "Falcon board
+  /// deck v4.pptx" is a confidential project belonging to someone who never became
+  /// a customer, and "uploaded 40 MB and left" is the whole diagnosis anyway.
+  /// detectedSlides is what we counted inside an uploaded deck; a gap against
+  /// slideCount raises the mismatch banner, itself a drop-off candidate.
+  fileCount      Int  @default(0)
+  fileMb         Int  @default(0)
+  styleFileCount Int  @default(0)
+  detectedSlides Int?
+
+  outcome String  @default("OPEN") // OPEN | CONVERTED - never ABANDONED, see above
+  /// Set when this attempt produced an order. A real relation, so rolling an order
+  /// back nulls this rather than leaving a row claiming to have converted into an
+  /// order that no longer exists.
+  orderId String?
+  order   Order?  @relation(fields: [orderId], references: [id])
+
+  /// Whether a session cookie was present at the last write, read server side and
+  /// never from the payload. Step 5 only shows the sign-in form when nobody is
+  /// signed in, and both Pay buttons stay disabled until they are, so a row that
+  /// reached step 5 while signed out is the account wall: the one step 5 failure
+  /// that produces no error message at all.
+  signedIn Boolean @default(false)
+  /// Stamped from the verified session cookie once there is one, so an erasure
+  /// request can find these rows. Cascades, because unlike a record of what
+  /// somebody did to another person's order, this is their own data.
+  userId   String?
+  user     User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  /// The request looked automated or impossibly fast. Kept rather than dropped, so
+  /// the report can exclude it and still say how much it excluded.
+  suspect Boolean @default(false)
+
+  /// When the free-text columns were emptied, whether by conversion or by age.
+  contentPurgedAt DateTime?
+  convertedAt     DateTime?
+  /// Server clock, set on every write. How stale this is, is the only thing
+  /// separating "left at step 3" from "still sitting on step 3".
+  lastSeenAt      DateTime  @default(now())
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([outcome, lastSeenAt])
+  @@index([lastSeenAt])
+  @@index([visitorId])
+  @@index([orderId])
+  @@index([userId])
+}
+
 /// ---------- Service catalogue (edited by admins under Settings) ----------
 /// Ids are stable codes (FIX_UP, CORPORATE, ...) referenced by orders, so
 /// options are disabled rather than deleted.
 
 model TreatmentOption {
-  id          String  @id
+  id          String   @id
   name        String
   tagline     String
   description String
   minCents    Int
   maxCents    Int
-  icon        String  @default("palette") // bulb | broom | palette | pencil
-  tint        String  @default("bg-violet-100 text-violet-700")
+  icon        String   @default("palette") // bulb | broom | palette | pencil
+  tint        String   @default("bg-violet-100 text-violet-700")
   badge       String?
-  enabled     Boolean @default(true)
-  sortOrder   Int     @default(0)
+  enabled     Boolean  @default(true)
+  sortOrder   Int      @default(0)
   updatedAt   DateTime @updatedAt
 }
 
 model StyleOption {
-  id             String  @id
+  id             String   @id
   name           String
   description    String
-  swatch         String  @default("from-brand-800 to-brand-950")
-  accent         String  @default("bg-accent-500")
-  requiresUpload Boolean @default(false)
-  enabled        Boolean @default(true)
-  sortOrder      Int     @default(0)
+  swatch         String   @default("from-brand-800 to-brand-950")
+  accent         String   @default("bg-accent-500")
+  requiresUpload Boolean  @default(false)
+  enabled        Boolean  @default(true)
+  sortOrder      Int      @default(0)
   updatedAt      DateTime @updatedAt
 }
 
 model DeliveryTierOption {
-  id         String  @id
+  id         String   @id
   name       String
   days       Int
   multiplier Float
   note       String
-  enabled    Boolean @default(true)
-  sortOrder  Int     @default(0)
+  enabled    Boolean  @default(true)
+  sortOrder  Int      @default(0)
   updatedAt  DateTime @updatedAt
 }
 
 model TextServiceOption {
-  id            String  @id
+  id            String   @id
   name          String
   description   String
   perSlideCents Int
-  icon          String  @default("search") // search | edit | none
-  enabled       Boolean @default(true)
-  sortOrder     Int     @default(0)
+  icon          String   @default("search") // search | edit | none
+  enabled       Boolean  @default(true)
+  sortOrder     Int      @default(0)
   updatedAt     DateTime @updatedAt
 }
 

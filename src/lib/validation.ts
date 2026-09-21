@@ -134,3 +134,100 @@ export const passwordSchema = z
     confirm: z.string(),
   })
   .refine((v) => v.next === v.confirm, { message: "The new passwords do not match", path: ["confirm"] });
+
+/// ---------- Wizard drop-off tracking ----------
+
+/** Like optionalText, but an unfilled box is stored as null rather than "". */
+const nullableText = (max: number) =>
+  z
+    .string()
+    .trim()
+    .max(max)
+    .nullish()
+    .transform((v) => v || null);
+
+/**
+ * Every field of the wizard draft, as an allowlist. lastField is reported by the
+ * browser and the admin report groups by it, so it has to be an enum: free text
+ * there would be unbounded, visitor-controlled label cardinality on the page.
+ */
+export const DRAFT_FIELDS = [
+  "treatment",
+  "style",
+  "slideCount",
+  "deliveryTier",
+  "proofreading",
+  "grammar",
+  "useGoogleSlides",
+  "googleSlidesUrl",
+  "brief",
+  "audience",
+  "brandNotes",
+  "fontsColors",
+  "extraNotes",
+  "billingAddress",
+  "billingCity",
+  "billingCountry",
+  "billingVat",
+  "files",
+  "styleFiles",
+  "extras",
+] as const;
+
+const uuid = z.string().regex(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/, "Invalid id");
+
+/**
+ * A half-finished wizard.
+ *
+ * Nothing is required except the ids and the step, because the whole point is
+ * the form somebody did not finish. Every cap matches orderSchema above, so this
+ * unauthenticated endpoint is never a wider write surface than the authenticated
+ * one it shadows, and zod strips unknown keys, so a payload cannot reach a
+ * column named nowhere here. Note what is deliberately absent: the billing
+ * values and the Google Slides URL, which are recorded only as "this box was
+ * filled in".
+ */
+export const wizardAttemptSchema = z.object({
+  attemptId: uuid,
+  visitorId: uuid.nullish(),
+  seq: z.number().int().min(1).max(100_000),
+  step: z.number().int().min(1).max(5),
+  maxStep: z.number().int().min(1).max(5),
+
+  blocker: nullableText(200),
+  blockedCount: z.number().int().min(0).max(1000).default(0),
+  submitCount: z.number().int().min(0).max(1000).default(0),
+
+  lastField: z.enum(DRAFT_FIELDS).nullish(),
+  stepSeconds: z
+    .string()
+    .regex(/^([1-5]:\d{1,6})(,[1-5]:\d{1,6})*$/)
+    .nullish(),
+  resumed: z.boolean().default(false),
+  reloads: z.number().int().min(0).max(500).default(0),
+  openedExtras: z.boolean().default(false),
+
+  treatment: optionId.nullish(),
+  style: optionId.nullish(),
+  slideCount: z.number().int().min(0).max(MAX_SLIDES).nullish(),
+  deliveryTier: optionId.nullish(),
+  proofreading: optionId.nullish(),
+  grammar: z.enum(["UK", "US"]).nullish(),
+  useGoogleSlides: z.boolean().default(false),
+  estimateCents: z.number().int().min(0).max(100_000_000).nullish(),
+
+  brief: nullableText(10_000),
+  audience: nullableText(2_000),
+  brandNotes: nullableText(2_000),
+  fontsColors: nullableText(2_000),
+  extraNotes: nullableText(5_000),
+
+  billingFilled: z.array(z.enum(["address", "city", "country", "vat"])).max(4).default([]),
+  googleSlidesFilled: z.boolean().default(false),
+  fileCount: z.number().int().min(0).max(50).default(0),
+  fileMb: z.number().int().min(0).max(100_000).default(0),
+  styleFileCount: z.number().int().min(0).max(50).default(0),
+  detectedSlides: z.number().int().min(0).max(MAX_SLIDES).nullish(),
+});
+
+export type WizardAttemptInput = z.infer<typeof wizardAttemptSchema>;

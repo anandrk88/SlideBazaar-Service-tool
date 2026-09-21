@@ -80,6 +80,45 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: err instanceof Error ? err.message : "Upload failed" }, { status: 400 });
   }
 
+  // Close out the wizard attempt this order came from.
+  //
+  // Here rather than from the browser, because the wizard navigates to checkout
+  // the moment it has this response and a beacon fired into a navigation is the
+  // one you cannot rely on. After the upload block rather than straight after
+  // createOrder, because a rejected upload deletes the order again, and that is
+  // a drop-off worth seeing rather than a conversion.
+  //
+  // The text is cleared in the same statement: the order now holds it, and one
+  // copy is enough. Everything structural survives, because converted attempts
+  // are the denominator of every percentage on the report. Wrapped whole, since
+  // tracking must never be able to fail an order somebody has paid for.
+  try {
+    const attemptId = fields.attemptId;
+    if (attemptId) {
+      const now = new Date();
+      await prisma.wizardAttempt.updateMany({
+        where: { attemptId, outcome: "OPEN" },
+        data: {
+          outcome: "CONVERTED",
+          orderId: order.id,
+          convertedAt: now,
+          contentPurgedAt: now,
+          lastSeenAt: now,
+          step: 5,
+          maxStep: 5,
+          blocker: null,
+          brief: null,
+          audience: null,
+          brandNotes: null,
+          fontsColors: null,
+          extraNotes: null,
+        },
+      });
+    }
+  } catch (err) {
+    console.error("[orders] wizard attempt close-out failed", err);
+  }
+
   // If checkout cannot be created the order still exists and is payable from
   // the dashboard, so tell the customer that rather than leaving them to retry
   // the whole wizard and create a duplicate order.

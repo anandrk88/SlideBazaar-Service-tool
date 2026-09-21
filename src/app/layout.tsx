@@ -22,6 +22,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           footer={
             <footer className="border-t border-slate-200 bg-white py-8 text-center text-xs text-muted">
               <p>SlideBazaar Custom Design Services. We hold your payment and release it only after you approve your designs. Full refund if you do not.</p>
+              <p className="mt-2">
+                <a href="https://slidebazaar.com/privacy-policy/" target="_blank" rel="noreferrer" className="underline underline-offset-2 hover:text-ink">
+                  Privacy Policy
+                </a>
+              </p>
             </footer>
           }
         >
