@@ -153,12 +153,29 @@ export default async function FunnelPage({ searchParams }: { searchParams: Promi
       </div>
 
       {!done.length ? (
+        // Two different empty states. Collecting-but-nothing-settled is the one
+        // you hit the moment this ships, and calling it "nothing recorded" would
+        // read as broken while it was in fact working.
         <div className="card p-6 text-sm text-muted">
-          <p className="font-semibold text-ink">Nothing recorded yet.</p>
-          <p className="mt-1">
-            An attempt appears here once somebody touches the order form and then either orders or goes quiet for thirty minutes. Loading the page without touching it records nothing, and so does a
-            browser sending Do Not Track or Global Privacy Control.
-          </p>
+          {inProgress.length ? (
+            <>
+              <p className="font-semibold text-ink">
+                Collecting. {inProgress.length} {inProgress.length === 1 ? "attempt is" : "attempts are"} in progress, and nothing has settled yet.
+              </p>
+              <p className="mt-1">
+                An attempt only enters the numbers once it becomes an order, or once nothing has happened on it for thirty minutes. If you have just been filling the form in yourself, wait half an hour
+                and reload this page.
+              </p>
+            </>
+          ) : (
+            <>
+              <p className="font-semibold text-ink">Nothing recorded yet.</p>
+              <p className="mt-1">
+                An attempt appears once somebody touches the order form and then either orders or goes quiet for thirty minutes. Loading the form without touching it records nothing, and neither does a
+                browser sending Do Not Track or Global Privacy Control.
+              </p>
+            </>
+          )}
         </div>
       ) : (
         <>
