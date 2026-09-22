@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
+import { after } from "next/server";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { Header } from "@/components/Header";
 import { SiteChrome } from "@/components/SiteChrome";
 import { getCurrentUser } from "@/lib/auth";
+import { sweepAbandoned } from "@/lib/pabbly-sweep";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
@@ -14,6 +16,12 @@ export const metadata: Metadata = {
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const user = await getCurrentUser();
+  // The busiest request path in the app, and the project has no scheduler, so
+  // this is where noticing that somebody gave up mostly happens. It is one
+  // Setting read when nothing is due, and it runs after the response.
+  after(async () => {
+    await sweepAbandoned();
+  });
   return (
     <html lang="en" className={inter.variable}>
       <body className="flex min-h-screen flex-col">

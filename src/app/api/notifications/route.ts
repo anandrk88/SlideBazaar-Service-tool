@@ -1,7 +1,8 @@
-import { NextResponse } from "next/server";
+import { after, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { markRead, unreadCount } from "@/lib/notify";
+import { sweepAbandoned } from "@/lib/pabbly-sweep";
 
 /** GET /api/notifications -> latest notifications for the bell dropdown. */
 export async function GET() {
@@ -11,6 +12,9 @@ export async function GET() {
     prisma.notification.findMany({ where: { userId: user.id }, orderBy: { createdAt: "desc" }, take: 10 }),
     unreadCount(user.id),
   ]);
+  after(async () => {
+    await sweepAbandoned();
+  });
   return NextResponse.json({ unread, items });
 }
 

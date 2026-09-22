@@ -251,7 +251,11 @@ export function OrderWizard({
       const res = await fetch("/api/orders", { method: "POST", body: fd });
       const json = await res.json();
       if (!res.ok) {
-        track.blocked(5, json.error ?? "Could not create your order");
+        // The CODE, never json.error. Two of the order endpoint's messages
+        // embed the uploaded file's name, and a name like "Falcon board deck
+        // v4.pptx" is a confidential project belonging to somebody who never
+        // became a customer. The schema promises it is never stored.
+        track.blocked(5, typeof json.code === "string" ? json.code : "ORDER_FAILED");
         setError(json.error ?? "Could not create your order");
         setSubmitting(false);
         return;

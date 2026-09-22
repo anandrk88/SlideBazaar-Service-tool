@@ -1,6 +1,9 @@
-import { NextResponse } from "next/server";
+import { after, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { modeFor, sendPabbly } from "@/lib/pabbly";
+import { orderPlacedEvent } from "@/lib/pabbly-events";
+import { sweepAbandoned } from "@/lib/pabbly-sweep";
 import { removeOrderFiles, storeUpload, validateUploadBatch } from "@/lib/files";
 import { createOrder } from "@/lib/orders";
 import { createCheckoutUrl } from "@/lib/checkout";
@@ -15,7 +18,7 @@ import { activeCatalog } from "@/lib/catalog";
  */
 export async function POST(req: Request) {
   const user = await getCurrentUser();
-  if (!user) return NextResponse.json({ error: "Please log in or create an account first" }, { status: 401 });
+  if (!user) return NextResponse.json({ error: "Please log in or create an account first", code: "NOT_SIGNED_IN" }, { status: 401 });
 
   const form = await req.formData();
   const fields: Record<string, string> = {};
@@ -23,26 +26,26 @@ export async function POST(req: Request) {
 
   const parsed = orderSchema.safeParse(fields);
   if (!parsed.success) {
-    return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Invalid order" }, { status: 400 });
+    return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Invalid order", code: "INVALID_ORDER" }, { status: 400 });
   }
   const data = parsed.data;
 
   // Only options that are currently offered may be ordered.
   const cat = activeCatalog(await loadCatalog());
   const style = cat.styles.find((s) => s.id === data.style);
-  if (!cat.treatments.some((t) => t.id === data.treatment)) return NextResponse.json({ error: "That treatment is not available" }, { status: 400 });
-  if (!style) return NextResponse.json({ error: "That style is not available" }, { status: 400 });
-  if (!cat.tiers.some((t) => t.id === data.deliveryTier)) return NextResponse.json({ error: "That delivery option is not available" }, { status: 400 });
-  if (!cat.textServices.some((t) => t.id === data.proofreading)) return NextResponse.json({ error: "That text service is not available" }, { status: 400 });
+  if (!cat.treatments.some((t) => t.id === data.treatment)) return NextResponse.json({ error: "That treatment is not available", code: "TREATMENT_UNAVAILABLE" }, { status: 400 });
+  if (!style) return NextResponse.json({ error: "That style is not available", code: "STYLE_UNAVAILABLE" }, { status: 400 });
+  if (!cat.tiers.some((t) => t.id === data.deliveryTier)) return NextResponse.json({ error: "That delivery option is not available", code: "DELIVERY_UNAVAILABLE" }, { status: 400 });
+  if (!cat.textServices.some((t) => t.id === data.proofreading)) return NextResponse.json({ error: "That text service is not available", code: "TEXT_SERVICE_UNAVAILABLE" }, { status: 400 });
 
   const sourceFiles = form.getAll("files").filter((f): f is File => f instanceof File && f.size > 0);
   const styleFiles = form.getAll("styleFiles").filter((f): f is File => f instanceof File && f.size > 0);
 
   if (sourceFiles.length === 0 && !data.googleSlidesUrl) {
-    return NextResponse.json({ error: "Please upload your presentation or provide a Google Slides link" }, { status: 400 });
+    return NextResponse.json({ error: "Please upload your presentation or provide a Google Slides link", code: "NO_SOURCE" }, { status: 400 });
   }
   if (style.requiresUpload && styleFiles.length === 0) {
-    return NextResponse.json({ error: `Please upload your template for the ${style.name} option` }, { status: 400 });
+    return NextResponse.json({ error: `Please upload your template for the ${style.name} option`, code: "NO_TEMPLATE" }, { status: 400 });
   }
 
   // Validate the whole batch before creating anything, so a rejected upload
@@ -50,7 +53,7 @@ export async function POST(req: Request) {
   try {
     validateUploadBatch([...sourceFiles, ...styleFiles]);
   } catch (err) {
-    return NextResponse.json({ error: err instanceof Error ? err.message : "Those files were not accepted" }, { status: 400 });
+    return NextResponse.json({ error: err instanceof Error ? err.message : "Those files were not accepted", code: "FILE_REJECTED" }, { status: 400 });
   }
 
   const customer = await prisma.user.update({
@@ -77,7 +80,7 @@ export async function POST(req: Request) {
   } catch (err) {
     await prisma.order.delete({ where: { id: order.id } });
     await removeOrderFiles(order.id);
-    return NextResponse.json({ error: err instanceof Error ? err.message : "Upload failed" }, { status: 400 });
+    return NextResponse.json({ error: err instanceof Error ? err.message : "Upload failed", code: "UPLOAD_FAILED" }, { status: 400 });
   }
 
   // Close out the wizard attempt this order came from.
@@ -118,6 +121,31 @@ export async function POST(req: Request) {
   } catch (err) {
     console.error("[orders] wizard attempt close-out failed", err);
   }
+
+  // After the upload block, not straight after createOrder: the upload failure
+  // path deletes the order again, and a webhook there would announce orders
+  // that no longer exist.
+  after(async () => {
+    if ((await modeFor("order.placed")) !== "off") {
+      await sendPabbly(
+        orderPlacedEvent({
+          id: order.id,
+          orderNumber: order.orderNumber,
+          treatment: data.treatment,
+          style: data.style,
+          slideCount: data.slideCount,
+          deliveryTier: data.deliveryTier,
+          totalCents: order.totalCents,
+          deadlineAt: order.deadlineAt,
+          createdAt: order.createdAt,
+          customerEmail: user.email,
+          customerName: user.name,
+        }),
+      );
+    }
+    // A conversion is traffic, so it is also a chance to notice abandonments.
+    await sweepAbandoned();
+  });
 
   // If checkout cannot be created the order still exists and is payable from
   // the dashboard, so tell the customer that rather than leaving them to retry

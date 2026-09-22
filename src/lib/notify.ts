@@ -1,5 +1,7 @@
 import "server-only";
 import nodemailer, { type Transporter } from "nodemailer";
+import { dispatch, modeFor, pabblyConfigured, sendPabbly } from "./pabbly";
+import { appNotificationEvent } from "./pabbly-events";
 import path from "node:path";
 import { appendFile, mkdir } from "node:fs/promises";
 import { prisma } from "./db";
@@ -80,8 +82,8 @@ export async function sendTransactionalEmail(to: { email: string; name: string }
 export async function notifyUsers(userIds: (string | null | undefined)[], p: NotifyPayload) {
   const ids = Array.from(new Set(userIds.filter((x): x is string => Boolean(x))));
   if (ids.length === 0) return;
-  const users = await prisma.user.findMany({ where: { id: { in: ids } }, select: { id: true, email: true, name: true } });
-  await Promise.all(
+  const users = await prisma.user.findMany({ where: { id: { in: ids } }, select: { id: true, email: true, name: true, role: true } });
+  const created = await Promise.all(
     users.map(async (u) => {
       const n = await prisma.notification.create({ data: { userId: u.id, type: p.type, title: p.title, body: p.body, href: p.href ?? null } });
       try {
@@ -90,8 +92,38 @@ export async function notifyUsers(userIds: (string | null | undefined)[], p: Not
       } catch (err) {
         console.error("email failed", err);
       }
+      return n.id;
     }),
   );
+
+  // One webhook per payload, deliberately outside the loop: notifyRoles(["MANAGER",
+  // "ADMIN"]) with three admins would otherwise fire three identical messages.
+  // notifyRoles delegates straight here, so this single site covers every
+  // existing notification in the app and every future one.
+  //
+  // Only the title and the length of the body go out. Several of these bodies
+  // are a verbatim slice of something a customer typed.
+  if (pabblyConfigured() && users.length) {
+    const mode = await modeFor(`app.${p.type}`);
+    const audiences = Array.from(new Set(users.map((u) => (u.role === "CUSTOMER" ? "customer" : u.role === "DESIGNER" ? "designer" : "staff"))));
+    const wanted = mode === "all" || (mode === "staff" && audiences.includes("staff"));
+    if (wanted) {
+      await dispatch(async () => {
+        await sendPabbly(
+          appNotificationEvent({
+            type: p.type,
+            title: p.title,
+            href: p.href ?? null,
+            bodyChars: p.body.length,
+            recipients: users.length,
+            audiences,
+            at: new Date(),
+            key: created[0] ?? `${p.type}:${Date.now()}`,
+          }),
+        );
+      });
+    }
+  }
 }
 
 /** Notify everyone with one of the given roles (e.g. all QC managers). */

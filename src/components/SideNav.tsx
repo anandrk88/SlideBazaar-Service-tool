@@ -2,9 +2,9 @@
 
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
-import { CalendarIcon, GridIcon, ListIcon, LockIcon, PencilIcon, ShieldCheckIcon, TagIcon, TasksIcon, UsersIcon } from "@/components/Icons";
+import { BellIcon, CalendarIcon, GridIcon, ListIcon, LockIcon, PencilIcon, ShieldCheckIcon, TagIcon, TasksIcon, UsersIcon } from "@/components/Icons";
 
-export type SideNavIcon = "grid" | "list" | "tasks" | "shield" | "lock" | "users" | "calendar" | "tag" | "pencil";
+export type SideNavIcon = "grid" | "list" | "tasks" | "shield" | "lock" | "users" | "calendar" | "tag" | "pencil" | "bell";
 
 export interface SideNavItem {
   href: string;
@@ -25,6 +25,7 @@ const ICONS: Record<SideNavIcon, (p: { width: number; height: number; className?
   calendar: CalendarIcon,
   tag: TagIcon,
   pencil: PencilIcon,
+  bell: BellIcon,
 };
 
 export function SideNav({ items, title, subtitle }: { items: SideNavItem[]; title: string; subtitle: string }) {

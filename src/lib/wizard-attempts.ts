@@ -33,6 +33,22 @@ const CONTENT = { brief: null, audience: null, brandNotes: null, fontsColors: nu
 
 export const RETENTION = { contentDays: CONTENT_DAYS, rowDays: ROW_DAYS };
 
+/**
+ * An attempt counts as finished once it becomes an order, or once nothing has
+ * happened on it for this long. Shared, because the drop-off report and the
+ * abandonment webhook have to agree on what "gave up" means, or the page and
+ * the alerts will contradict each other.
+ */
+export const SETTLE_MS = 30 * 60_000;
+
+export const STEPS = [
+  { n: 1, label: "Treatment" },
+  { n: 2, label: "Style" },
+  { n: 3, label: "Delivery" },
+  { n: 4, label: "Files & details" },
+  { n: 5, label: "Payment" },
+];
+
 export async function purgeWizardAttempts() {
   const now = Date.now();
   const [purged, deleted] = await Promise.all([

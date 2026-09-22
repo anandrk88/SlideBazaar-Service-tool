@@ -5,6 +5,9 @@ import { prisma } from "@/lib/db";
 import { appUrl } from "@/lib/env";
 import { clientKey, rateLimit } from "@/lib/rate-limit";
 import { type WizardAttemptInput, wizardAttemptSchema } from "@/lib/validation";
+import { modeFor, sendPabbly } from "@/lib/pabbly";
+import { startedEvent } from "@/lib/pabbly-events";
+import { sweepAbandoned } from "@/lib/pabbly-sweep";
 import { sweepIfDue } from "@/lib/wizard-attempts";
 
 /**
@@ -133,9 +136,18 @@ export async function POST(req: Request) {
     // behind one address is a single key here and an untracked visitor is
     // invisible to us as well as to them.
     if (!rateLimit(`wz:new:${ip}`, 40, 3600).allowed) return ok();
-    await prisma.wizardAttempt
+    // "We minted the row", not merely "we took the !existing branch": two first
+    // beacons can race and only the winner should announce a new visitor.
+    const minted = await prisma.wizardAttempt
       .create({ data: { attemptId: p.attemptId, visitorId: p.visitorId ?? null, createdAt: now, ...row } })
-      .catch(() => {}); // two first beacons raced and the other won
+      .then(() => true)
+      .catch(() => false);
+    if (minted && !row.suspect) {
+      after(async () => {
+        if ((await modeFor("wizard.started")) === "off") return;
+        await sendPabbly(startedEvent(p.attemptId, p.visitorId ?? null, row.signedIn, p.resumed, now));
+      });
+    }
   } else {
     // seq in the WHERE is what makes the read-modify-write above safe: if a
     // higher-seq beacon landed in between, this matches nothing and is correctly
@@ -147,8 +159,14 @@ export async function POST(req: Request) {
     });
   }
 
-  // This is the retention mechanism, not a backstop: the project has no
-  // scheduler, so the sweep rides on the traffic that grows the table.
-  after(() => sweepIfDue());
+  // Both rides on traffic, because the project has no scheduler. Registered
+  // separately so a surprise in one cannot stop the other, and written as
+  // explicit async bodies so there is always a promise for after() to await.
+  after(async () => {
+    await sweepIfDue();
+  });
+  after(async () => {
+    await sweepAbandoned();
+  });
   return ok();
 }

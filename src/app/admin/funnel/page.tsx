@@ -2,7 +2,7 @@ import Link from "next/link";
 import { requireAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { dateTime } from "@/lib/format";
-import { RETENTION, lastPurgeAt } from "@/lib/wizard-attempts";
+import { RETENTION, SETTLE_MS, STEPS, lastPurgeAt } from "@/lib/wizard-attempts";
 
 export const metadata = { title: "Order form drop-off | SlideBazaar Admin" };
 export const dynamic = "force-dynamic";
@@ -27,15 +27,6 @@ export const dynamic = "force-dynamic";
  *     loss would blame the brief step for a sale that happened.
  */
 
-const STEPS = [
-  { n: 1, label: "Treatment" },
-  { n: 2, label: "Style" },
-  { n: 3, label: "Delivery" },
-  { n: 4, label: "Files & details" },
-  { n: 5, label: "Payment" },
-];
-
-const SETTLE_MS = 30 * 60_000;
 const WINDOWS = [7, 30, 90];
 /** A guard, not a page size: past this the aggregates would be a lie by omission. */
 const MAX_ROWS = 20_000;
