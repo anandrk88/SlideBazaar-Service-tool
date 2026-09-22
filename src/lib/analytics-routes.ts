@@ -19,8 +19,23 @@
  *     every number on the way to a decision slightly wrong.
  */
 
-/** Exact paths. */
-const EXACT = new Set(["/", "/order", "/order/success"]);
+/**
+ * Exact paths.
+ *
+ * /order/success is deliberately absent, although it is the obvious place to
+ * measure a purchase. Two independent reasons:
+ *
+ *  1. It never renders. Every branch of src/app/order/success/page.tsx calls
+ *     redirect(), so a tag placed there would not run even once.
+ *  2. Stripe sends the visitor back to it as
+ *     ?order=...&session_id={CHECKOUT_SESSION_ID}, and a tag manager reports the
+ *     full page URL. That would hand a live Checkout Session id to Google.
+ *
+ * Purchases are therefore not measurable in the browser. They are already
+ * counted in Admin > Order form drop-off and sent to Pabbly as order.placed,
+ * which is server side and does not depend on anybody's tag.
+ */
+const EXACT = new Set(["/", "/order"]);
 
 export function analyticsAllowed(pathname: string): boolean {
   // Normalise a trailing slash, so /order/ behaves like /order.

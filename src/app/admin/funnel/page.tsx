@@ -74,6 +74,8 @@ export default async function FunnelPage({ searchParams }: { searchParams: Promi
       lastSeenAt: true,
       blocker: true,
       stepSeconds: true,
+      treatment: true,
+      createdAt: true,
       submitCount: true,
       signedIn: true,
       reloads: true,
@@ -123,6 +125,17 @@ export default async function FunnelPage({ searchParams }: { searchParams: Promi
   const accountWall = lost.filter((r) => r.maxStep === 5 && !r.signedIn).length;
   const refreshers = lost.filter((r) => r.reloads > 0).length;
 
+  const liveNow = [...inProgress]
+    .sort((a, b) => b.lastSeenAt.getTime() - a.lastSeenAt.getTime())
+    .slice(0, 10)
+    .map((r) => ({
+      step: r.maxStep,
+      label: STEPS.find((s) => s.n === r.maxStep)?.label ?? `Step ${r.maxStep}`,
+      treatment: r.treatment,
+      agoMin: Math.max(0, Math.round((now - r.lastSeenAt.getTime()) / 60_000)),
+      settlesInMin: Math.max(0, Math.ceil((SETTLE_MS - (now - r.lastSeenAt.getTime())) / 60_000)),
+    }));
+
   const purged = await lastPurgeAt();
 
   return (
@@ -143,6 +156,32 @@ export default async function FunnelPage({ searchParams }: { searchParams: Promi
         </div>
       </div>
 
+      {liveNow.length > 0 && (
+        <section className="card overflow-hidden p-0">
+          <div className="border-b border-slate-200 bg-surface px-5 py-3">
+            <p className="text-sm font-semibold">Happening now</p>
+            <p className="text-xs text-muted">
+              Attempts still in progress. They are not in any figure above yet: each one joins the table once it becomes an order, or once it has been quiet for thirty minutes.
+            </p>
+          </div>
+          <ul className="divide-y divide-slate-100 text-sm">
+            {liveNow.map((r, i) => (
+              <li key={i} className="flex flex-wrap items-baseline justify-between gap-2 px-5 py-2.5">
+                <span>
+                  <span className="font-medium">
+                    Step {r.step} {r.label}
+                  </span>
+                  {r.treatment && <span className="ml-2 text-xs text-muted">{r.treatment}</span>}
+                </span>
+                <span className="text-xs text-muted">
+                  last seen {r.agoMin === 0 ? "just now" : `${r.agoMin} min ago`} &middot; counts in {r.settlesInMin} min
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
       {!done.length ? (
         // Two different empty states. Collecting-but-nothing-settled is the one
         // you hit the moment this ships, and calling it "nothing recorded" would
@@ -153,10 +192,7 @@ export default async function FunnelPage({ searchParams }: { searchParams: Promi
               <p className="font-semibold text-ink">
                 Collecting. {inProgress.length} {inProgress.length === 1 ? "attempt is" : "attempts are"} in progress, and nothing has settled yet.
               </p>
-              <p className="mt-1">
-                An attempt only enters the numbers once it becomes an order, or once nothing has happened on it for thirty minutes. If you have just been filling the form in yourself, wait half an hour
-                and reload this page.
-              </p>
+              <p className="mt-1">Your attempt is listed above. It joins the figures here once it becomes an order, or once it has been quiet for thirty minutes.</p>
             </>
           ) : (
             <>
