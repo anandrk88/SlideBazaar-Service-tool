@@ -69,10 +69,14 @@ export function OrderWizard({
   initialUser,
   calendar = DEFAULT_CALENDAR,
   catalog = DEFAULT_CATALOG,
+  consentRequired = false,
 }: {
   initialUser: SessionUser | null;
   calendar?: BusinessCalendar;
   catalog?: Catalog;
+  /** Decided on the server: where a cookie banner is expected, nothing is
+   *  recorded until the visitor has actually opted in. */
+  consentRequired?: boolean;
 }) {
   const cat = useMemo(() => activeCatalog(catalog), [catalog]);
   const defaultTier = cat.tiers[cat.tiers.length - 1]?.id ?? "";
@@ -111,7 +115,7 @@ export function OrderWizard({
     } catch {}
   }, [draft, hydrated]);
 
-  const track = useWizardTracker();
+  const track = useWizardTracker(consentRequired);
 
   const set = <K extends keyof Draft>(key: K, value: Draft[K]) => {
     setDraft((d) => ({ ...d, [key]: value }));
@@ -536,6 +540,7 @@ export function OrderWizard({
                 placeholder="Example: keep slides 8 and 11 untouched. The colours on 27 must not change. Find a stronger illustration for slide 26..."
                 value={draft.brief}
                 onChange={(e) => set("brief", e.target.value)}
+                data-clarity-mask="true"
               />
               <p className="mt-2 text-xs text-muted">
                 We save your answers as you go, so you can come back to them and so we can see where this form gets in the way.{" "}
@@ -566,15 +571,15 @@ export function OrderWizard({
                 <div id="helpful-extras" className="mt-4 grid gap-4 sm:grid-cols-2">
                   <div>
                     <label className="label">Who is the audience?</label>
-                    <input className="input" value={draft.audience} onChange={(e) => set("audience", e.target.value)} placeholder="Investors, sales prospects, internal team..." />
+                    <input className="input" value={draft.audience} onChange={(e) => set("audience", e.target.value)} placeholder="Investors, sales prospects, internal team..." data-clarity-mask="true" />
                   </div>
                   <div>
                     <label className="label">Fonts and colours</label>
-                    <input className="input" value={draft.fontsColors} onChange={(e) => set("fontsColors", e.target.value)} placeholder="Montserrat, #16244F and #FF6A3D" />
+                    <input className="input" value={draft.fontsColors} onChange={(e) => set("fontsColors", e.target.value)} placeholder="Montserrat, #16244F and #FF6A3D" data-clarity-mask="true" />
                   </div>
                   <div className="sm:col-span-2">
                     <label className="label">Brand guidelines or references</label>
-                    <textarea rows={2} className="input" value={draft.brandNotes} onChange={(e) => set("brandNotes", e.target.value)} placeholder="Links to your website, brand book or decks you like" />
+                    <textarea rows={2} className="input" value={draft.brandNotes} onChange={(e) => set("brandNotes", e.target.value)} placeholder="Links to your website, brand book or decks you like" data-clarity-mask="true" />
                   </div>
                   <div className="sm:col-span-2">
                     <label className="label">Anything else?</label>

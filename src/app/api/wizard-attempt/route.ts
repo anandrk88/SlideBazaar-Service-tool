@@ -4,7 +4,7 @@ import { SESSION_COOKIE, getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { appUrl } from "@/lib/env";
 import { clientKey, rateLimit } from "@/lib/rate-limit";
-import { type WizardAttemptInput, wizardAttemptSchema } from "@/lib/validation";
+import { type WizardAttemptInput, wizardAttemptSchema, wizardEraseSchema } from "@/lib/validation";
 import { modeFor, sendPabbly } from "@/lib/pabbly";
 import { startedEvent } from "@/lib/pabbly-events";
 import { sweepAbandoned } from "@/lib/pabbly-sweep";
@@ -202,5 +202,42 @@ export async function POST(req: Request) {
   after(async () => {
     await sweepAbandoned();
   });
+  return ok();
+}
+
+/**
+ * DELETE /api/wizard-attempt — the visitor withdrew consent.
+ *
+ * Deletes outright rather than clearing the text: they are saying they did not
+ * agree to any of it, so the row goes, not merely its contents.
+ *
+ * Uses sameOrigin for the same reason the POST does. An earlier version of that
+ * check compared against appUrl(), which does not necessarily match the host
+ * somebody actually visited, and a mismatch here would mean silently refusing
+ * to honour an erasure — the worst possible thing to get wrong quietly.
+ *
+ * Converted attempts are kept: that data now belongs to a real order, and the
+ * order is the lawful record of a transaction they did agree to.
+ */
+export async function DELETE(req: Request) {
+  if (!sameOrigin(req)) return ok();
+
+  const ip = clientKey(req);
+  if (!rateLimit(`wz:del:${ip}`, 60, 3600).allowed) return ok();
+
+  const parsed = wizardEraseSchema.safeParse(await req.json().catch(() => null));
+  if (!parsed.success) return ok();
+  const { attemptId, visitorId } = parsed.data;
+
+  const or: { attemptId?: string; visitorId?: string }[] = [];
+  if (attemptId) or.push({ attemptId });
+  if (visitorId) or.push({ visitorId });
+
+  try {
+    const { count } = await prisma.wizardAttempt.deleteMany({ where: { OR: or, outcome: "OPEN" } });
+    if (count) console.info(`[wizard-attempt] erased ${count} row(s) on withdrawal of consent`);
+  } catch (err) {
+    console.error("[wizard-attempt] erasure failed:", err instanceof Error ? err.message : err);
+  }
   return ok();
 }

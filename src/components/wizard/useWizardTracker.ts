@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef } from "react";
+import { useAnalyticsConsent } from "@/lib/consent";
 import type { DRAFT_FIELDS } from "@/lib/validation";
 
 /**
@@ -134,7 +135,14 @@ function loadAttempt(): AttemptEntry | null {
   }
 }
 
-export function useWizardTracker(): WizardTracker {
+export function useWizardTracker(consentRequired: boolean): WizardTracker {
+  // Where a banner is expected, nothing is recorded until somebody has actually
+  // said yes. "Has not answered" counts as no: a banner that blocks Google
+  // Analytics while this kept recording what people typed would be telling them
+  // something untrue about the one system here holding real personal data.
+  const consent = useAnalyticsConsent(consentRequired);
+  const consented = consent === "granted";
+
   // Honour an explicit opt-out. globalPrivacyControl is absent from the DOM
   // typings, hence the cast; this repo runs tsc as a build step.
   const optedOut =
@@ -159,7 +167,7 @@ export function useWizardTracker(): WizardTracker {
   const stepSince = useRef({ step: 1, at: Date.now() });
 
   const tracker = useMemo<WizardTracker>(() => {
-    if (optedOut || typeof window === "undefined") return NOOP;
+    if (optedOut || !consented || typeof window === "undefined") return NOOP;
 
     /** Mint on first genuine interaction, never on mount. */
     function ensure(): AttemptEntry | null {
@@ -357,7 +365,7 @@ export function useWizardTracker(): WizardTracker {
         } catch {}
       },
     };
-  }, [optedOut]);
+  }, [optedOut, consented]);
 
   // Leaving the page. pagehide and a hidden visibilitychange, never unload:
   // unload is unreliable on mobile Safari and it disqualifies the page from the
@@ -365,7 +373,7 @@ export function useWizardTracker(): WizardTracker {
   // timer, which is what covers in-app navigation, because clicking the header
   // logo unmounts the wizard without firing either event.
   useEffect(() => {
-    if (optedOut) return;
+    if (optedOut || !consented) return;
     const leave = () => {
       if (dirty.current) tracker.flush();
     };
@@ -379,7 +387,7 @@ export function useWizardTracker(): WizardTracker {
       document.removeEventListener("visibilitychange", onHide);
       leave();
     };
-  }, [tracker, optedOut]);
+  }, [tracker, optedOut, consented]);
 
   return tracker;
 }

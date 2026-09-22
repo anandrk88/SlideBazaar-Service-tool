@@ -21,6 +21,7 @@
     "verify:money": "tsx --conditions=react-server scripts/verify-money.ts",
     "verify:auth": "tsx scripts/verify-auth.ts",
     "verify:pabbly": "tsx --conditions=react-server scripts/verify-pabbly.ts",
+    "verify:analytics": "tsx --conditions=react-server scripts/verify-analytics.ts",
     "storage:check": "tsx --conditions=react-server scripts/check-storage.ts",
     "wizard:purge": "tsx --conditions=react-server scripts/purge-wizard-attempts.ts",
     "bootstrap": "tsx --conditions=react-server scripts/bootstrap-production.ts"

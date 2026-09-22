@@ -231,3 +231,12 @@ export const wizardAttemptSchema = z.object({
 });
 
 export type WizardAttemptInput = z.infer<typeof wizardAttemptSchema>;
+
+/**
+ * A withdrawal of consent. Either handle alone is enough: the tab may have no
+ * live attempt while the browser still carries a visitor id from an earlier
+ * visit, and vice versa.
+ */
+export const wizardEraseSchema = z
+  .object({ attemptId: uuid.nullish(), visitorId: uuid.nullish() })
+  .refine((v) => Boolean(v.attemptId || v.visitorId), { message: "Nothing to erase" });

@@ -9,6 +9,7 @@ import { Faq } from "@/components/marketing/Faq";
 import { Guarantee } from "@/components/marketing/Guarantee";
 import { HtmlBlock } from "@/components/marketing/HtmlBlock";
 import { loadBlocks } from "@/lib/blocks-server";
+import { AnalyticsSlot } from "@/components/AnalyticsSlot";
 
 export const dynamic = "force-dynamic";
 
@@ -23,6 +24,7 @@ export default async function HomePage() {
 
   return (
     <div>
+      <AnalyticsSlot />
       {blocks.hero ? <HtmlBlock html={blocks.hero} invert /> : <Hero fromCents={fromCents} fastestLabel={fastestLabel} />}
 
       {blocks.beforeafter ? <HtmlBlock html={blocks.beforeafter} /> : <BeforeAfter />}
