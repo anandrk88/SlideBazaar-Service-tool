@@ -32,6 +32,45 @@ const BOT_UA =
 
 const ok = () => new NextResponse(null, { status: 204 });
 
+/**
+ * Is this a same-origin POST from our own pages?
+ *
+ * Compared against the host the request actually arrived on, NOT against
+ * appUrl(). An earlier version of this used appUrl(), and because APP_URL in
+ * the deployment did not match the domain people actually visit, every beacon
+ * from every real browser was silently discarded: browsers always send Origin
+ * on a POST, so the check rejected 100% of genuine traffic and 0% of anything
+ * else. The host header cannot drift from reality the way a config value can.
+ *
+ * A missing Origin is allowed: some non-browser clients omit it, and this
+ * endpoint is not a mutation anybody else's account can feel.
+ */
+function sameOrigin(req: Request): boolean {
+  const origin = req.headers.get("origin");
+  if (!origin) return true;
+
+  let originHost: string;
+  try {
+    originHost = new URL(origin).host;
+  } catch {
+    return false;
+  }
+
+  // Vercel puts the domain the visitor used in x-forwarded-host.
+  const self = req.headers.get("x-forwarded-host") ?? req.headers.get("host");
+  if (self && originHost === self) return true;
+
+  try {
+    if (originHost === new URL(appUrl()).host) return true;
+  } catch {
+    /* a malformed APP_URL must not be able to reject real traffic */
+  }
+
+  // Never silent again: a rejection here used to look exactly like no traffic.
+  console.warn(`[wizard-attempt] origin ${originHost} did not match host ${self ?? "(none)"}`);
+  return false;
+}
+
 /** The payload as database columns. billingFilled is a list on the wire. */
 function toColumns(p: WizardAttemptInput) {
   return {
@@ -80,12 +119,7 @@ function isSuspect(p: WizardAttemptInput, existing: { createdAt: Date } | null, 
 }
 
 export async function POST(req: Request) {
-  // Browsers send Origin on every POST, including same-origin ones and beacons.
-  // appUrl() is this repo's single source of truth for its own origin; deriving
-  // it from req.url gives http behind a TLS-terminating proxy, which would
-  // reject every genuine write in production.
-  const origin = req.headers.get("origin");
-  if (origin && origin !== appUrl()) return ok();
+  if (!sameOrigin(req)) return ok();
 
   const ua = req.headers.get("user-agent") ?? "";
   if (!ua || BOT_UA.test(ua)) return ok();
