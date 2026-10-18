@@ -20,7 +20,7 @@ export async function sendVerificationEmail(user: { id: string; email: string; n
   await sendTransactionalEmail(user, {
     type: "EMAIL_VERIFY",
     title: "Confirm your email address",
-    body: `Hi ${user.name}, please confirm this is your email address so we can send you order updates. The link is good for 24 hours: ${link}`,
+    body: `Please confirm this is your email address so we can send you order updates. The link is good for 24 hours: ${link}`,
     href: `/verify-email?token=${encodeURIComponent(token)}`,
   });
 }
@@ -32,7 +32,7 @@ export async function sendPasswordResetEmail(user: { id: string; email: string; 
     type: "PASSWORD_RESET",
     title: "Reset your password",
     body:
-      `Hi ${user.name}, use this link to set a new password. It expires in an hour and can only be used once: ${link}` +
+      `Use this link to set a new password. It expires in an hour and can only be used once: ${link}` +
       " If you did not ask for this, you can ignore this email and nothing will change.",
     href: `/reset-password?token=${encodeURIComponent(token)}`,
   });
