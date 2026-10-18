@@ -47,6 +47,15 @@ function describe(err: unknown): string {
       "password resets to real customers will silently fail until you do.",
     ].join("\n  ");
   }
+  if (/greeting never received/i.test(msg)) {
+    return [
+      "The connection opened but the server never said hello.",
+      "That is almost always a port and TLS mismatch: ports 465 and 2465 expect TLS from the",
+      "first byte, while 25, 587 and 2587 expect a plaintext greeting and then STARTTLS. Talking",
+      "plaintext to 465 produces exactly this silence.",
+      "Fix: set SMTP_PORT=587. If you must use 465, set SMTP_SECURE=true as well.",
+    ].join("\n  ");
+  }
   if (/ETIMEDOUT|ECONNREFUSED|ENOTFOUND|EAI_AGAIN/i.test(e?.code ?? msg)) {
     return [
       "Could not reach the SMTP host at all.",

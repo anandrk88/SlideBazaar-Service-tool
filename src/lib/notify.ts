@@ -25,11 +25,28 @@ function smtp() {
     transporter = null;
     return null;
   }
+  const port = Number(process.env.SMTP_PORT || 587);
+
+  // Which ports expect TLS from the first byte, rather than STARTTLS after a
+  // plaintext greeting. Getting this wrong is not a polite failure: the server
+  // waits for a TLS handshake, we wait for a greeting, and nodemailer
+  // eventually reports "Greeting never received" with nothing to say which end
+  // was wrong. 2465 is the trap, because it is a TLS-wrapper port that an
+  // equality check against 465 alone misses.
+  const TLS_WRAPPER_PORTS = [465, 2465];
+  const secure = process.env.SMTP_SECURE ? process.env.SMTP_SECURE === "true" : TLS_WRAPPER_PORTS.includes(port);
+
   transporter = nodemailer.createTransport({
     host,
-    port: Number(process.env.SMTP_PORT || 587),
-    secure: Number(process.env.SMTP_PORT || 587) === 465,
+    port,
+    secure,
     auth: process.env.SMTP_USER ? { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS } : undefined,
+    // Fail fast and visibly. The default waits long enough that a serverless
+    // function can be torn down first, which turns a misconfiguration into
+    // "the email just never arrived" with no error anywhere.
+    connectionTimeout: 10_000,
+    greetingTimeout: 10_000,
+    socketTimeout: 20_000,
   });
   return transporter;
 }
