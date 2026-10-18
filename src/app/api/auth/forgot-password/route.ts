@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { after, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { emailOnlySchema } from "@/lib/validation";
 import { sendPasswordResetEmail } from "@/lib/account-email";
@@ -32,11 +32,24 @@ export async function POST(req: Request) {
   });
 
   if (user) {
-    // Not awaited on purpose. Awaiting an SMTP round trip only when the address
-    // exists makes the response time itself the answer, which is exactly what
-    // the identical response body was written to hide.
-    void sendPasswordResetEmail(user).catch((err) => {
-      console.error("[forgot-password] could not send the email:", err instanceof Error ? err.message : err);
+    // after(), not a floating promise.
+    //
+    // Still not awaited inline: awaiting an SMTP round trip only when the
+    // address exists would make the response time itself the answer, which is
+    // exactly what the identical response body was written to hide.
+    //
+    // But a floating promise does not survive here. Vercel pauses background
+    // work the moment the response is sent, so the SMTP exchange was being
+    // abandoned mid-handshake and surfacing as "Greeting never received" - a
+    // message that points at the mail server when the caller was at fault.
+    // after() keeps the work inside the invocation while the response still
+    // goes out immediately, which satisfies both constraints at once.
+    after(async () => {
+      try {
+        await sendPasswordResetEmail(user);
+      } catch (err) {
+        console.error("[forgot-password] could not send the email:", err instanceof Error ? err.message : err);
+      }
     });
   }
 
